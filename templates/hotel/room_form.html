@@ -1,0 +1,99 @@
+{% extends 'hotel/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% if room %}Edit Room{% else %}Add Room{% endif %} - Hotel Booking System{% endblock %}
+{% block page_title %}{% if room %}Edit Room{% else %}Add Room{% endif %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5>
+                {% if room %}
+                <i class="fas fa-edit me-2"></i> Edit Room: {{ room.number }}
+                {% else %}
+                <i class="fas fa-plus me-2"></i> Add New Room
+                {% endif %}
+            </h5>
+            <a href="{% url 'room_list' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Rooms
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+            
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    {{ form.number|as_crispy_field }}
+                </div>
+                <div class="col-md-6">
+                    {{ form.floor|as_crispy_field }}
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    {{ form.room_type|as_crispy_field }}
+                </div>
+                <div class="col-md-6">
+                    {{ form.status|as_crispy_field }}
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    {{ form.image|as_crispy_field }}
+                    {% if room.image %}
+                    <div class="mt-2">
+                        <p>Current Image:</p>
+                        <img src="{{ room.image.url }}" alt="Room Image" class="img-thumbnail" style="max-height: 200px;">
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                {{ form.notes|as_crispy_field }}
+            </div>
+            
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'room_list' %}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    {% if room %}Update Room{% else %}Create Room{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Preview image before upload
+    document.getElementById('id_image').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Remove existing preview if any
+                const existingPreview = document.querySelector('.image-preview');
+                if (existingPreview) {
+                    existingPreview.remove();
+                }
+                
+                // Create new preview
+                const preview = document.createElement('div');
+                preview.className = 'image-preview mt-2';
+                preview.innerHTML = `
+                    <p class="mb-2">Preview:</p>
+                    <img src="${e.target.result}" alt="Preview" class="img-thumbnail" style="max-height: 200px;">
+                `;
+                document.getElementById('id_image').parentNode.appendChild(preview);
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
+{% endblock %} 

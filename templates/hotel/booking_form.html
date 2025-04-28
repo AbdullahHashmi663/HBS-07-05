@@ -1,0 +1,312 @@
+{% extends 'hotel/base.html' %}
+
+{% block title %}
+    {% if booking %}Edit Booking{% else %}Create Booking{% endif %} - Hotel Booking System
+{% endblock %}
+
+{% block page_title %}
+    {% if booking %}Edit Booking #{{ booking.booking_id }}{% else %}Create New Booking{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    {% if booking %}
+                    <i class="fas fa-edit me-2"></i>Edit Booking
+                    {% else %}
+                    <i class="fas fa-plus-circle me-2"></i>Create New Booking
+                    {% endif %}
+                </h5>
+                <a href="{% if booking %}{% url 'booking_detail' booking.id %}{% else %}{% url 'booking_list' %}{% endif %}" class="btn btn-sm btn-light">
+                    <i class="fas fa-arrow-left me-1"></i> 
+                    {% if booking %}Back to Booking{% else %}Back to List{% endif %}
+                </a>
+            </div>
+            <div class="card-body">
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-3">Guest Information</h6>
+                                    <div class="row">
+                                        <div class="col-md-12 mb-3">
+                                            <label for="guest" class="form-label">Select Guest</label>
+                                            <select name="guest" id="guest" class="form-select" required>
+                                                <option value="">-- Select Guest --</option>
+                                                {% for guest in guests %}
+                                                <option value="{{ guest.id }}" {% if booking.guest.id == guest.id %}selected{% endif %}>
+                                                    {{ guest.full_name }} ({{ guest.email|default:guest.phone }})
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                            <div class="invalid-feedback">Please select a guest.</div>
+                                            <div class="form-text">
+                                                <a href="{% url 'guest_create' %}?next={{ request.path }}" target="_blank">
+                                                    <i class="fas fa-plus-circle"></i> Create new guest
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-3">Booking Details</h6>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="check_in_date" class="form-label">Check-in Date</label>
+                                            <input type="date" class="form-control" id="check_in_date" name="check_in_date"
+                                                value="{% if booking %}{{ booking.check_in_date|date:'Y-m-d' }}{% endif %}" required>
+                                            <div class="invalid-feedback">Please select a check-in date.</div>
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="check_out_date" class="form-label">Check-out Date</label>
+                                            <input type="date" class="form-control" id="check_out_date" name="check_out_date"
+                                                value="{% if booking %}{{ booking.check_out_date|date:'Y-m-d' }}{% endif %}" required>
+                                            <div class="invalid-feedback">Please select a check-out date.</div>
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="adults" class="form-label">Number of Adults</label>
+                                            <input type="number" class="form-control" id="adults" name="adults" min="1" max="10"
+                                                value="{{ booking.adults|default:1 }}" required>
+                                            <div class="invalid-feedback">Please specify number of adults.</div>
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="children" class="form-label">Number of Children</label>
+                                            <input type="number" class="form-control" id="children" name="children" min="0" max="10"
+                                                value="{{ booking.children|default:0 }}">
+                                        </div>
+                                        
+                                        {% if booking %}
+                                        <div class="col-md-6 mb-3">
+                                            <label for="status" class="form-label">Booking Status</label>
+                                            <select name="status" id="status" class="form-select" required>
+                                                <option value="confirmed" {% if booking.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
+                                                <option value="checked_in" {% if booking.status == 'checked_in' %}selected{% endif %}>Checked In</option>
+                                                <option value="checked_out" {% if booking.status == 'checked_out' %}selected{% endif %}>Checked Out</option>
+                                                <option value="cancelled" {% if booking.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                                                <option value="no_show" {% if booking.status == 'no_show' %}selected{% endif %}>No Show</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="payment_status" class="form-label">Payment Status</label>
+                                            <div class="form-check form-switch mt-2">
+                                                <input class="form-check-input" type="checkbox" id="payment_status" name="payment_status"
+                                                    {% if booking.payment_status %}checked{% endif %}>
+                                                <label class="form-check-label" for="payment_status">
+                                                    Mark as paid
+                                                </label>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-3">Room Selection</h6>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-12 mb-3">
+                                            <label for="room" class="form-label">Select Room</label>
+                                            <select name="room" id="room" class="form-select" required>
+                                                <option value="">-- Select Room --</option>
+                                                {% for room in rooms %}
+                                                <option value="{{ room.id }}" {% if booking.room.id == room.id %}selected{% endif %}>
+                                                    Room {{ room.number }} - {{ room.room_type.name }} (Rs{{ room.room_type.price_per_night }}/night)
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                            <div class="invalid-feedback">Please select a room.</div>
+                                        </div>
+                                    </div>
+                                    
+                                    {% if not booking %}
+                                    <div class="mt-3">
+                                        <button type="button" id="checkAvailability" class="btn btn-outline-primary">
+                                            <i class="fas fa-search me-1"></i> Check Room Availability
+                                        </button>
+                                        
+                                        <div id="availabilityResults" class="mt-3" style="display: none;">
+                                            <div class="alert alert-info">
+                                                <span id="availabilityMessage"></span>
+                                            </div>
+                                            <div class="table-responsive">
+                                                <table class="table table-bordered table-sm" id="availableRoomsTable" style="display: none;">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Room</th>
+                                                            <th>Type</th>
+                                                            <th>Capacity</th>
+                                                            <th>Price/Night</th>
+                                                            <th>Action</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="availableRoomsList">
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-3">Additional Information</h6>
+                                    <div class="row">
+                                        <div class="col-md-12 mb-3">
+                                            <label for="special_requests" class="form-label">Special Requests</label>
+                                            <textarea class="form-control" id="special_requests" name="special_requests" rows="3">{{ booking.special_requests }}</textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <hr>
+                            <div class="d-flex justify-content-between">
+                                <a href="{% if booking %}{% url 'booking_detail' booking.id %}{% else %}{% url 'booking_list' %}{% endif %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-1"></i> Cancel
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i> 
+                                    {% if booking %}Update Booking{% else %}Create Booking{% endif %}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Form validation
+        const form = document.querySelector('.needs-validation');
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        });
+        
+        // Date validation
+        const checkInDate = document.getElementById('check_in_date');
+        const checkOutDate = document.getElementById('check_out_date');
+        
+        checkInDate.addEventListener('change', function() {
+            checkOutDate.min = checkInDate.value;
+            if (checkOutDate.value && checkOutDate.value < checkInDate.value) {
+                checkOutDate.value = checkInDate.value;
+            }
+        });
+        
+        {% if not booking %}
+        // Check availability functionality
+        const checkAvailabilityBtn = document.getElementById('checkAvailability');
+        const availabilityResults = document.getElementById('availabilityResults');
+        const availabilityMessage = document.getElementById('availabilityMessage');
+        const availableRoomsTable = document.getElementById('availableRoomsTable');
+        const availableRoomsList = document.getElementById('availableRoomsList');
+        
+        checkAvailabilityBtn.addEventListener('click', function() {
+            const checkIn = checkInDate.value;
+            const checkOut = checkOutDate.value;
+            
+            if (!checkIn || !checkOut) {
+                alert('Please select both check-in and check-out dates');
+                return;
+            }
+            
+            // Make AJAX request to check availability
+            fetch(`/hotel/check-availability/?check_in=${checkIn}&check_out=${checkOut}`)
+                .then(response => response.json())
+                .then(data => {
+                    availabilityResults.style.display = 'block';
+                    
+                    if (data.error) {
+                        availabilityMessage.textContent = data.error;
+                        availableRoomsTable.style.display = 'none';
+                        return;
+                    }
+                    
+                    if (data.available_rooms && data.available_rooms.length) {
+                        availabilityMessage.textContent = `${data.available_rooms.length} rooms available for the selected dates.`;
+                        availableRoomsTable.style.display = 'table';
+                        
+                        // Clear previous results
+                        availableRoomsList.innerHTML = '';
+                        
+                        // Populate table with available rooms
+                        data.available_rooms.forEach(room => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>Room ${room.number}</td>
+                                <td>${room.type}</td>
+                                <td>${room.capacity} persons</td>
+                                <td>Rs ${room.price}</td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-success select-room" data-id="${room.id}">
+                                        Select
+                                    </button>
+                                </td>
+                            `;
+                            availableRoomsList.appendChild(row);
+                        });
+                        
+                        // Add event listeners to select buttons
+                        document.querySelectorAll('.select-room').forEach(button => {
+                            button.addEventListener('click', function() {
+                                const roomId = this.getAttribute('data-id');
+                                document.getElementById('room').value = roomId;
+                            });
+                        });
+                    } else {
+                        availabilityMessage.textContent = 'No rooms available for the selected dates.';
+                        availableRoomsTable.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking availability:', error);
+                    availabilityMessage.textContent = 'Error checking availability. Please try again.';
+                    availableRoomsTable.style.display = 'none';
+                });
+        });
+        {% endif %}
+    });
+</script>
+{% endblock %}
+{% endblock %} 

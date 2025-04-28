@@ -1,0 +1,499 @@
+{% extends "hotel/base.html" %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Theme Settings{% endblock %}
+
+{% block page_title %}Theme Settings{% endblock %}
+
+{% block extra_css %}
+<style>
+.color-picker {
+    height: 40px;
+    padding: 5px;
+    cursor: pointer;
+}
+
+.color-preview {
+    height: 20px;
+    width: 100%;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+.preview-container {
+    background-color: white;
+}
+
+.palette-carousel-container {
+    position: relative;
+    padding: 0 40px;
+}
+
+.palette-carousel {
+    display: flex;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    margin: 0 -10px;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    gap: 20px;
+}
+
+.palette-carousel::-webkit-scrollbar {
+    display: none;
+}
+
+.palette-item {
+    min-width: 220px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    background-color: #fff;
+    margin: 0 5px;
+    transition: all 0.2s ease;
+}
+
+.palette-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.palette-preview {
+    height: 40px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.color-box {
+    height: 100%;
+}
+
+.carousel-control-prev,
+.carousel-control-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: white;
+    border: 1px solid #ddd;
+    text-align: center;
+    line-height: 40px;
+    z-index: 10;
+    cursor: pointer;
+    opacity: 0.8;
+    color: #333;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.carousel-control-prev {
+    left: -8px;
+}
+
+.carousel-control-next {
+    right: -8px;
+}
+
+.carousel-control-prev:hover,
+.carousel-control-next:hover {
+    opacity: 1;
+    background-color: #f8f9fa;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-palette me-2"></i>Color Theme Settings</h5>
+            <button class="btn btn-sm btn-secondary" id="resetTheme">
+                <i class="fas fa-undo me-1"></i> Reset to Default
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Trending Palettes Section -->
+        <div class="mb-4">
+            <h6 class="mb-3">Trending Color Palettes</h6>
+            
+            <div class="palette-carousel-container position-relative">
+                <button class="carousel-control-prev" type="button" id="palette-prev">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                
+                <div class="palette-carousel">
+                    <div class="palette-item" data-palette-name="neutral">
+                        <div class="palette-preview d-flex mb-2">
+                            <div class="color-box" style="background-color: #EAEAEA; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #D3CAC1; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #F6EEE0; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #E6CCBE; flex: 1;"></div>
+                        </div>
+                        <div class="d-grid">
+                            <button class="btn btn-sm btn-outline-secondary apply-palette" data-palette="neutral">
+                                <i class="fas fa-magic me-1"></i> Neutral Elegance
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="palette-item" data-palette-name="vibrant">
+                        <div class="palette-preview d-flex mb-2">
+                            <div class="color-box" style="background-color: #E94B4F; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #F1F7ED; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #9DD9D2; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #4F8CB6; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #254465; flex: 1;"></div>
+                        </div>
+                        <div class="d-grid">
+                            <button class="btn btn-sm btn-outline-secondary apply-palette" data-palette="vibrant">
+                                <i class="fas fa-magic me-1"></i> Vibrant Contrast
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="palette-item" data-palette-name="earthy">
+                        <div class="palette-preview d-flex mb-2">
+                            <div class="color-box" style="background-color: #4A3F35; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #9C8C8C; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #D7D0C8; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #F8F4EC; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #E6BFB2; flex: 1;"></div>
+                        </div>
+                        <div class="d-grid">
+                            <button class="btn btn-sm btn-outline-secondary apply-palette" data-palette="earthy">
+                                <i class="fas fa-magic me-1"></i> Earthy Tones
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="palette-item" data-palette-name="cool">
+                        <div class="palette-preview d-flex mb-2">
+                            <div class="color-box" style="background-color: #475BE8; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #6B7CE0; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #A8B6FF; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #E6EFFF; flex: 1;"></div>
+                        </div>
+                        <div class="d-grid">
+                            <button class="btn btn-sm btn-outline-secondary apply-palette" data-palette="cool">
+                                <i class="fas fa-magic me-1"></i> Cool Blues
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="palette-item" data-palette-name="bright">
+                        <div class="palette-preview d-flex mb-2">
+                            <div class="color-box" style="background-color: #1B4D73; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #FB5B7F; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #FFD166; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #06D6A0; flex: 1;"></div>
+                        </div>
+                        <div class="d-grid">
+                            <button class="btn btn-sm btn-outline-secondary apply-palette" data-palette="bright">
+                                <i class="fas fa-magic me-1"></i> Bright Pop
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="palette-item" data-palette-name="contrast">
+                        <div class="palette-preview d-flex mb-2">
+                            <div class="color-box" style="background-color: #1A3A8F; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #E83D76; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #F9DB43; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #F6F7EB; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #373E40; flex: 1;"></div>
+                        </div>
+                        <div class="d-grid">
+                            <button class="btn btn-sm btn-outline-secondary apply-palette" data-palette="contrast">
+                                <i class="fas fa-magic me-1"></i> High Contrast
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="palette-item" data-palette-name="autumn">
+                        <div class="palette-preview d-flex mb-2">
+                            <div class="color-box" style="background-color: #6A1B1F; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #F1883B; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #253C5B; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #0A6E47; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #D5D5D5; flex: 1;"></div>
+                        </div>
+                        <div class="d-grid">
+                            <button class="btn btn-sm btn-outline-secondary apply-palette" data-palette="autumn">
+                                <i class="fas fa-magic me-1"></i> Rich Autumn
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="palette-item" data-palette-name="freshMint">
+                        <div class="palette-preview d-flex mb-2">
+                            <div class="color-box" style="background-color: #5EFFC9; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #85C7F8; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #FFFFFF; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #8A7BC8; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #000000; flex: 1;"></div>
+                        </div>
+                        <div class="d-grid">
+                            <button class="btn btn-sm btn-outline-secondary apply-palette" data-palette="freshMint">
+                                <i class="fas fa-magic me-1"></i> Fresh Mint
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="palette-item" data-palette-name="ocean">
+                        <div class="palette-preview d-flex mb-2">
+                            <div class="color-box" style="background-color: #1C64A5; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #53A7DA; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #77C0CE; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #FFDD63; flex: 1;"></div>
+                            <div class="color-box" style="background-color: #EA914E; flex: 1;"></div>
+                        </div>
+                        <div class="d-grid">
+                            <button class="btn btn-sm btn-outline-secondary apply-palette" data-palette="ocean">
+                                <i class="fas fa-magic me-1"></i> Ocean Sunrise
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="carousel-control-next" type="button" id="palette-next">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+        
+        <hr class="my-4">
+        
+        <form method="post" id="themeForm">
+            {% csrf_token %}
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-4">
+                        <h6 class="mb-3">Brand Colors</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Primary Color</label>
+                                    {{ form.primary_color }}
+                                    <div class="color-preview mt-2" style="background-color: {{ user_theme_settings.primary_color }}"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Secondary Color</label>
+                                    {{ form.secondary_color }}
+                                    <div class="color-preview mt-2" style="background-color: {{ user_theme_settings.secondary_color }}"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6 class="mb-3">Status Colors</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Danger Color</label>
+                                    {{ form.danger_color }}
+                                    <div class="color-preview mt-2" style="background-color: {{ user_theme_settings.danger_color }}"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Warning Color</label>
+                                    {{ form.warning_color }}
+                                    <div class="color-preview mt-2" style="background-color: {{ user_theme_settings.warning_color }}"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="mb-4">
+                        <h6 class="mb-3">Layout Colors</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Sidebar Color</label>
+                                    {{ form.sidebar_color }}
+                                    <div class="color-preview mt-2" style="background-color: {{ user_theme_settings.sidebar_color }}"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="theme-preview mb-4">
+                        <h6 class="mb-3">Theme Preview</h6>
+                        <div class="preview-container p-3 border rounded">
+                            <div class="preview-header" style="background-color: {{ user_theme_settings.primary_color }}; color: white; padding: 8px; border-radius: 4px; margin-bottom: 10px;">
+                                Header Example
+                            </div>
+                            <div class="preview-buttons mb-3">
+                                <button type="button" class="btn btn-sm" style="background-color: {{ user_theme_settings.primary_color }}; color: white;">Primary</button>
+                                <button type="button" class="btn btn-sm" style="background-color: {{ user_theme_settings.secondary_color }}; color: white;">Secondary</button>
+                                <button type="button" class="btn btn-sm" style="background-color: {{ user_theme_settings.danger_color }}; color: white;">Danger</button>
+                                <button type="button" class="btn btn-sm" style="background-color: {{ user_theme_settings.warning_color }}; color: white;">Warning</button>
+                            </div>
+                            <div class="preview-sidebar" style="background-color: {{ user_theme_settings.sidebar_color }}; color: white; padding: 5px; border-radius: 4px;">
+                                Sidebar Example
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 text-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i> Save Theme Settings
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/theme_functions.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize the theme functions
+        if (typeof initThemeFunctions === 'function') {
+            initThemeFunctions();
+        }
+        
+        // Load existing theme from localStorage if available
+        loadSavedTheme();
+        
+        // Set up palette carousel navigation
+        const paletteCarousel = document.querySelector('.palette-carousel');
+        const prevButton = document.getElementById('palette-prev');
+        const nextButton = document.getElementById('palette-next');
+        
+        if (paletteCarousel && prevButton && nextButton) {
+            prevButton.addEventListener('click', function() {
+                paletteCarousel.scrollBy({ left: -470, behavior: 'smooth' });
+            });
+            
+            nextButton.addEventListener('click', function() {
+                paletteCarousel.scrollBy({ left: 470, behavior: 'smooth' });
+            });
+            
+            // Add palette application functionality
+            document.querySelectorAll('.apply-palette').forEach(button => {
+                button.addEventListener('click', function() {
+                    const palette = this.dataset.palette;
+                    if (typeof applyColorPalette === 'function') {
+                        applyColorPalette(palette);
+                    }
+                });
+            });
+        }
+        
+        // Set up reset theme functionality
+        const resetButton = document.getElementById('resetTheme');
+        if (resetButton) {
+            resetButton.addEventListener('click', function() {
+                if (typeof resetToDefaultTheme === 'function') {
+                    resetToDefaultTheme();
+                }
+            });
+        }
+        
+        // Create a mini navigation preview in the theme preview section
+        const themePreview = document.querySelector('.theme-preview .preview-container');
+        if (themePreview) {
+            const navPreview = document.createElement('div');
+            navPreview.className = 'preview-nav mt-3';
+            navPreview.style.borderRadius = '4px';
+            navPreview.style.overflow = 'hidden';
+            
+            // Create three nav items for preview
+            const navItemActive = document.createElement('div');
+            navItemActive.className = 'preview-nav-item active';
+            navItemActive.style.backgroundColor = document.querySelector('[name="primary_color"]').value;
+            navItemActive.style.color = 'white';
+            navItemActive.style.padding = '8px 15px';
+            navItemActive.style.borderLeft = `4px solid ${document.querySelector('[name="secondary_color"]').value}`;
+            navItemActive.innerHTML = '<i class="fas fa-home me-2"></i> Dashboard';
+            
+            const navItem1 = document.createElement('div');
+            navItem1.className = 'preview-nav-item';
+            navItem1.style.backgroundColor = document.querySelector('[name="sidebar_color"]').value;
+            navItem1.style.color = 'white';
+            navItem1.style.padding = '8px 15px';
+            navItem1.innerHTML = '<i class="fas fa-bed me-2"></i> Rooms';
+            
+            const navItem2 = document.createElement('div');
+            navItem2.className = 'preview-nav-item';
+            navItem2.style.backgroundColor = document.querySelector('[name="sidebar_color"]').value;
+            navItem2.style.color = 'white';
+            navItem2.style.padding = '8px 15px';
+            navItem2.innerHTML = '<i class="fas fa-users me-2"></i> Guests';
+            
+            // Add the nav items to the preview
+            navPreview.appendChild(navItemActive);
+            navPreview.appendChild(navItem1);
+            navPreview.appendChild(navItem2);
+            
+            // Add the nav preview to the theme preview container
+            themePreview.appendChild(navPreview);
+            
+            // Update the preview when the theme colors change
+            const updateNavPreview = function() {
+                navItemActive.style.backgroundColor = document.querySelector('[name="primary_color"]').value;
+                navItemActive.style.borderLeftColor = document.querySelector('[name="secondary_color"]').value;
+                navItem1.style.backgroundColor = document.querySelector('[name="sidebar_color"]').value;
+                navItem2.style.backgroundColor = document.querySelector('[name="sidebar_color"]').value;
+            };
+            
+            // Listen for input changes
+            document.querySelector('[name="primary_color"]').addEventListener('input', updateNavPreview);
+            document.querySelector('[name="secondary_color"]').addEventListener('input', updateNavPreview);
+            document.querySelector('[name="sidebar_color"]').addEventListener('input', updateNavPreview);
+            
+            // Update when palettes are applied
+            document.querySelectorAll('.apply-palette').forEach(button => {
+                button.addEventListener('click', function() {
+                    // Small delay to ensure color inputs are updated first
+                    setTimeout(updateNavPreview, 50);
+                });
+            });
+        }
+    });
+    
+    function loadSavedTheme() {
+        // Try to load saved theme from server data first
+        {% if theme_settings %}
+            try {
+                const serverTheme = JSON.parse('{{ theme_settings|escapejs }}');
+                if (serverTheme) {
+                    Object.keys(serverTheme).forEach(key => {
+                        const inputName = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+                        const input = document.querySelector(`[name="${inputName}"]`);
+                        if (input) {
+                            input.value = serverTheme[key];
+                        }
+                    });
+                    // Apply theme after loading values
+                    if (typeof applyThemeChanges === 'function') {
+                        applyThemeChanges();
+                    } else {
+                        // If theme functions aren't loaded yet, retry after a short delay
+                        setTimeout(() => {
+                            if (typeof applyThemeChanges === 'function') {
+                                applyThemeChanges();
+                            }
+                        }, 100);
+                    }
+                }
+            } catch (e) {
+                console.error('Error loading theme from server:', e);
+            }
+        {% endif %}
+    }
+</script>
+{% endblock %} 

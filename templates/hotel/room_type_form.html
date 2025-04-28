@@ -1,0 +1,71 @@
+{% extends 'hotel/base.html' %}
+
+{% block title %}
+    {% if room_type %}Edit{% else %}Create{% endif %} Room Type - Hotel Booking System
+{% endblock %}
+
+{% block page_title %}
+    {% if room_type %}Edit{% else %}Create{% endif %} Room Type
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-bed me-2"></i>
+                {% if room_type %}Edit{% else %}Create New{% endif %} Room Type
+            </div>
+            <div class="card-body">
+                <form method="post" action="{% if room_type %}{% url 'room_type_edit' room_type.id %}{% else %}{% url 'room_type_create' %}{% endif %}">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label required">Room Type Name</label>
+                        <input type="text" class="form-control" id="name" name="name" value="{% if room_type %}{{ room_type.name }}{% endif %}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label required">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" required>{% if room_type %}{{ room_type.description }}{% endif %}</textarea>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="price_per_night" class="form-label required">Price per Night (Rs)</label>
+                            <input type="number" class="form-control" id="price_per_night" name="price_per_night" step="0.01" min="0" value="{% if room_type %}{{ room_type.price_per_night }}{% endif %}" required>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="capacity" class="form-label required">Capacity (people)</label>
+                            <input type="number" class="form-control" id="capacity" name="capacity" min="1" value="{% if room_type %}{{ room_type.capacity }}{% else %}1{% endif %}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="amenities" class="form-label">Amenities</label>
+                        <textarea class="form-control" id="amenities" name="amenities" rows="3" placeholder="e.g. Wi-Fi, TV, Air conditioning">{% if room_type %}{{ room_type.amenities }}{% endif %}</textarea>
+                        <small class="text-muted">List amenities separated by commas</small>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'room_type_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i> Back to Room Types
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i> {% if room_type %}Update{% else %}Save{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .required:after {
+        content: " *";
+        color: red;
+    }
+</style>
+{% endblock %} 

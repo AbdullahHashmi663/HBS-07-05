@@ -1,0 +1,271 @@
+{% extends 'hotel/base.html' %}
+
+{% block title %}Occupancy Report - Hotel Booking System{% endblock %}
+{% block page_title %}Occupancy Report{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-bed me-2"></i> Room Occupancy Report</h5>
+                <a href="{% url 'reports' %}" class="btn btn-sm btn-light">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Reports
+                </a>
+            </div>
+            <div class="card-body">
+                <!-- Date Range Filter Form -->
+                <form method="get" class="mb-4">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label for="start_date" class="form-label">Start Date</label>
+                            <input type="date" id="start_date" name="start_date" class="form-control" 
+                                value="{{ start_date|date:'Y-m-d' }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="end_date" class="form-label">End Date</label>
+                            <input type="date" id="end_date" name="end_date" class="form-control" 
+                                value="{{ end_date|date:'Y-m-d' }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-filter me-1"></i> Generate Report
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                
+                <!-- Statistics Cards -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white h-100">
+                            <div class="card-body text-center">
+                                <h6 class="mb-2">Occupancy Rate</h6>
+                                <h2 class="mb-0">{{ occupancy_percentage|floatformat:1 }}%</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white h-100">
+                            <div class="card-body text-center">
+                                <h6 class="mb-2">Total Rooms</h6>
+                                <h2 class="mb-0">{{ total_rooms }}</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white h-100">
+                            <div class="card-body text-center">
+                                <h6 class="mb-2">Room Nights Used</h6>
+                                <h2 class="mb-0">{{ occupied_room_nights }}</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-dark h-100">
+                            <div class="card-body text-center">
+                                <h6 class="mb-2">Total Possible Nights</h6>
+                                <h2 class="mb-0">{{ total_possible_room_nights }}</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Occupancy Details -->
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Occupancy Details</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Time Period</th>
+                                        <th>Total Room Nights</th>
+                                        <th>Occupied Room Nights</th>
+                                        <th>Occupancy Rate</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>{{ start_date|date:"M d, Y" }} - {{ end_date|date:"M d, Y" }}</td>
+                                        <td>{{ total_possible_room_nights }}</td>
+                                        <td>{{ occupied_room_nights }}</td>
+                                        <td>{{ occupancy_percentage|floatformat:1 }}%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Actual chart implementation with Chart.js -->
+                        <div class="mt-4">
+                            <h6 class="mb-3 text-center">Daily Occupancy Rate ({{ start_date|date:"M d, Y" }} - {{ end_date|date:"M d, Y" }})</h6>
+                            <div class="chart-container" style="position: relative; height:300px; width:100%">
+                                {% if daily_occupancy %}
+                                <canvas id="occupancyChart"></canvas>
+                                {% else %}
+                                <div class="alert alert-info text-center py-5">
+                                    <i class="fas fa-info-circle me-2"></i> No booking data available for the selected date range.
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Load Chart.js directly in the content block -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Instead of using DOMContentLoaded, we'll run the script directly
+    // since it's at the end of the page content
+    console.log("Script executing, checking for Chart.js...");
+    
+    // Debug: Check if Chart.js is loaded
+    if (typeof Chart === 'undefined') {
+        console.error("Chart is not defined! Chart.js library failed to load.");
+        
+        // Add a visible error message to the page
+        const chartContainer = document.querySelector('.chart-container');
+        if (chartContainer) {
+            chartContainer.innerHTML = '<div class="alert alert-danger">Failed to load Chart.js library. Please check your internet connection and refresh the page.</div>';
+        }
+    } else {
+        console.log("Chart.js is loaded successfully.");
+        
+        const chartCanvas = document.getElementById('occupancyChart');
+        if (!chartCanvas) {
+            console.error('Chart canvas element not found');
+        } else {
+            const ctx = chartCanvas.getContext('2d');
+            
+            // Extract data from django template
+            const dates = [
+                {% for day in daily_occupancy %}
+                    "{{ day.date|date:'M d' }}"{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ];
+            
+            const occupancyRates = [
+                {% for day in daily_occupancy %}
+                    {{ day.occupancy_rate }}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ];
+            
+            const occupiedRooms = [
+                {% for day in daily_occupancy %}
+                    {{ day.occupied_rooms }}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ];
+            
+            // Debug: Check if we have data
+            console.log("Chart data:", { dates, occupancyRates, occupiedRooms });
+            
+            if (dates.length === 0) {
+                console.warn("No data available for the chart");
+            } else {
+                // Create the chart
+                try {
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: dates,
+                            datasets: [
+                                {
+                                    label: 'Occupancy Rate (%)',
+                                    data: occupancyRates,
+                                    borderColor: 'rgba(54, 162, 235, 1)',
+                                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                                    borderWidth: 2,
+                                    fill: true,
+                                    tension: 0.1,
+                                    yAxisID: 'y'
+                                },
+                                {
+                                    label: 'Occupied Rooms',
+                                    data: occupiedRooms,
+                                    borderColor: 'rgba(255, 99, 132, 1)',
+                                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                    borderWidth: 2,
+                                    borderDash: [5, 5],
+                                    fill: false,
+                                    tension: 0.1,
+                                    yAxisID: 'y1'
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Date'
+                                    }
+                                },
+                                y: {
+                                    position: 'left',
+                                    title: {
+                                        display: true,
+                                        text: 'Occupancy Rate (%)'
+                                    },
+                                    beginAtZero: true,
+                                    max: 100,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return value + '%';
+                                        }
+                                    }
+                                },
+                                y1: {
+                                    position: 'right',
+                                    title: {
+                                        display: true,
+                                        text: 'Occupied Rooms'
+                                    },
+                                    beginAtZero: true,
+                                    max: {{ total_rooms }},
+                                    grid: {
+                                        drawOnChartArea: false
+                                    }
+                                }
+                            },
+                            interaction: {
+                                mode: 'index',
+                                intersect: false
+                            },
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            let label = context.dataset.label || '';
+                                            if (label) {
+                                                label += ': ';
+                                            }
+                                            if (context.dataset.yAxisID === 'y') {
+                                                label += context.parsed.y + '%';
+                                            } else {
+                                                label += context.parsed.y + ' rooms';
+                                            }
+                                            return label;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    console.log("Chart created successfully");
+                } catch (error) {
+                    console.error("Error creating chart:", error);
+                }
+            }
+        }
+    }
+</script>
+{% endblock %} 

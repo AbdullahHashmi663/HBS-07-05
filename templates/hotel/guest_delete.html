@@ -1,0 +1,119 @@
+{% extends 'hotel/base.html' %}
+
+{% block title %}Delete Guest - Hotel Booking System{% endblock %}
+{% block page_title %}Delete Guest{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-trash me-2"></i>Confirm Deletion</h5>
+            </div>
+            <div class="card-body">
+                {% if active_bookings > 0 %}
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Warning!</strong> This guest has {{ active_bookings }} active booking(s).
+                    <p class="mb-0 mt-2">Deleting this guest will also delete all their bookings. It is recommended to check out the guest or cancel their bookings first.</p>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Are you sure you want to delete the guest <strong>{{ guest.full_name }}</strong>?
+                    <p class="mb-0 mt-2">This action cannot be undone. All booking history and data associated with this guest will be permanently deleted.</p>
+                </div>
+                {% endif %}
+                
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Guest Details</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-2 text-center mb-3">
+                                {% if guest.photo %}
+                                <img src="{{ guest.photo.url }}" alt="{{ guest.full_name }}" class="img-fluid rounded-circle" style="max-width: 80px;">
+                                {% else %}
+                                <div class="avatar-placeholder rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 80px; height: 80px; font-size: 2rem;">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-10">
+                                <table class="table table-sm">
+                                    <tr>
+                                        <th width="30%">Name:</th>
+                                        <td>{{ guest.full_name }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Email:</th>
+                                        <td>{{ guest.email }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Phone:</th>
+                                        <td>{{ guest.phone }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Country:</th>
+                                        <td>{{ guest.get_country_display }}</td>
+                                    </tr>
+                                    {% if guest.address %}
+                                    <tr>
+                                        <th>Address:</th>
+                                        <td>{{ guest.address }}</td>
+                                    </tr>
+                                    {% endif %}
+                                    {% if active_bookings > 0 %}
+                                    <tr>
+                                        <th>Active Bookings:</th>
+                                        <td><span class="badge bg-danger">{{ active_bookings }}</span></td>
+                                    </tr>
+                                    {% endif %}
+                                    {% if total_bookings > 0 %}
+                                    <tr>
+                                        <th>Total Bookings:</th>
+                                        <td>{{ total_bookings }}</td>
+                                    </tr>
+                                    {% if total_spent %}
+                                    <tr>
+                                        <th>Total Revenue:</th>
+                                        <td>Rs{{ total_spent }}</td>
+                                    </tr>
+                                    {% endif %}
+                                    {% endif %}
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'guest_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Cancel
+                    </a>
+                    
+                    {% if active_bookings > 0 %}
+                    <div>
+                        <form method="post" action="" class="d-inline-block">
+                            {% csrf_token %}
+                            <input type="hidden" name="force_delete" value="true">
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('WARNING: This will delete all bookings for this guest. Are you absolutely sure?')">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Force Delete
+                            </button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <form method="post" action="">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-2"></i>Delete Guest
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

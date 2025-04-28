@@ -1,0 +1,66 @@
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Booking ID</th>
+                <th>Guest</th>
+                <th>Room</th>
+                <th>Check In</th>
+                <th>Check Out</th>
+                <th>Status</th>
+                <th>Total</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for booking in bookings %}
+            <tr>
+                <td><small class="text-muted">#{{ booking.booking_id }}</small></td>
+                <td>{{ booking.guest.full_name }}</td>
+                <td>{{ booking.room.number }} ({{ booking.room.room_type.name }})</td>
+                <td>{{ booking.check_in_date|date:"M d, Y" }}</td>
+                <td>{{ booking.check_out_date|date:"M d, Y" }}</td>
+                <td>
+                    {% if booking.status == 'confirmed' %}
+                    <span class="badge bg-primary">Confirmed</span>
+                    {% elif booking.status == 'checked_in' %}
+                    <span class="badge bg-success">Checked In</span>
+                    {% elif booking.status == 'checked_out' %}
+                    <span class="badge bg-info">Checked Out</span>
+                    {% else %}
+                    <span class="badge bg-danger">Cancelled</span>
+                    {% endif %}
+                </td>
+                <td>Rs{{ booking.total_price }}</td>
+                <td>
+                    <div class="btn-group">
+                        <a href="{% url 'booking_detail' booking.id %}" class="btn btn-sm btn-outline-primary" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        {% if user.is_superuser %}
+                        <a href="{% url 'booking_edit' booking.id %}" class="btn btn-sm btn-outline-secondary" title="Edit Booking">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'booking_receipt_pdf' booking.id %}" class="btn btn-sm btn-outline-info" title="Print Receipt" target="_blank">
+                            <i class="fas fa-print"></i>
+                        </a>
+                        <a href="{% url 'booking_delete' booking.id %}" class="btn btn-sm btn-outline-danger" title="Cancel Booking"
+                           onclick="return confirm('Are you sure you want to cancel this booking?');">
+                            <i class="fas fa-times"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center py-4">
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-info-circle me-2"></i>No bookings found.
+                    </p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div> 

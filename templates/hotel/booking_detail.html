@@ -1,0 +1,228 @@
+{% extends 'hotel/base.html' %}
+
+{% block title %}Booking #{{ booking.booking_id }} - Hotel Booking System{% endblock %}
+{% block page_title %}Booking Details{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Booking #{{ booking.booking_id }}</h5>
+                <div>
+                    <a href="{% url 'booking_receipt_pdf' booking.id %}" class="btn btn-sm btn-light me-2" target="_blank">
+                        <i class="fas fa-print"></i> Print Receipt
+                    </a>
+                    {% if user.is_superuser or user.profile.role == 'admin' %}
+                    <a href="{% url 'booking_edit' booking.id %}" class="btn btn-sm btn-light me-2">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'booking_list' %}" class="btn btn-sm btn-light">
+                        <i class="fas fa-arrow-left"></i> Back to List
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Booking Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <dl class="row">
+                                    <dt class="col-sm-4">Check-In Date:</dt>
+                                    <dd class="col-sm-8">{{ booking.check_in_date|date:"F d, Y" }}</dd>
+                                    
+                                    <dt class="col-sm-4">Check-Out Date:</dt>
+                                    <dd class="col-sm-8">{{ booking.check_out_date|date:"F d, Y" }}</dd>
+                                    
+                                    <dt class="col-sm-4">Nights:</dt>
+                                    <dd class="col-sm-8">{{ booking.check_out_date|timeuntil:booking.check_in_date|default:"1" }}</dd>
+                                    
+                                    <dt class="col-sm-4">Total Price:</dt>
+                                    <dd class="col-sm-8">Rs{{ booking.total_price }}</dd>
+                                    
+                                    <dt class="col-sm-4">Status:</dt>
+                                    <dd class="col-sm-8">
+                                        {% if booking.status == 'confirmed' %}
+                                        <span class="badge bg-success">Confirmed</span>
+                                        {% elif booking.status == 'checked_in' %}
+                                        <span class="badge bg-primary">Checked In</span>
+                                        {% elif booking.status == 'checked_out' %}
+                                        <span class="badge bg-secondary">Checked Out</span>
+                                        {% elif booking.status == 'cancelled' %}
+                                        <span class="badge bg-danger">Cancelled</span>
+                                        {% elif booking.status == 'no_show' %}
+                                        <span class="badge bg-dark">No Show</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                    </dd>
+                                    
+                                    <dt class="col-sm-4">Payment Status:</dt>
+                                    <dd class="col-sm-8">
+                                        {% if booking.payment_status %}
+                                        <span class="badge bg-success">Paid</span>
+                                        {% else %}
+                                        <span class="badge bg-warning text-dark">Unpaid</span>
+                                        {% endif %}
+                                    </dd>
+                                    
+                                    <dt class="col-sm-4">Guests:</dt>
+                                    <dd class="col-sm-8">{{ booking.adults }} Adults, {{ booking.children }} Children</dd>
+                                    
+                                    <dt class="col-sm-4">Special Requests:</dt>
+                                    <dd class="col-sm-8">{{ booking.special_requests|default:"None" }}</dd>
+                                    
+                                    <dt class="col-sm-4">Created:</dt>
+                                    <dd class="col-sm-8">{{ booking.created_at|date:"F d, Y H:i" }}</dd>
+                                    
+                                    <dt class="col-sm-4">Created By:</dt>
+                                    <dd class="col-sm-8">{{ booking.created_by.get_full_name|default:booking.created_by.username }}</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-bed me-2"></i>Room Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="text-center mb-4">
+                                    <div class="display-6 text-primary">
+                                        <i class="fas fa-door-open"></i>
+                                    </div>
+                                    <h5 class="mt-2">Room {{ booking.room.number }}</h5>
+                                    <p class="badge bg-info">{{ booking.room.room_type.name }}</p>
+                                </div>
+                                
+                                <dl class="row">
+                                    <dt class="col-sm-4">Floor:</dt>
+                                    <dd class="col-sm-8">{{ booking.room.floor }}</dd>
+                                    
+                                    <dt class="col-sm-4">Capacity:</dt>
+                                    <dd class="col-sm-8">{{ booking.room.room_type.capacity }} Person(s)</dd>
+                                    
+                                    <dt class="col-sm-4">Price per Night:</dt>
+                                    <dd class="col-sm-8">Rs{{ booking.room.room_type.price_per_night }}</dd>
+                                    
+                                    <dt class="col-sm-4">Amenities:</dt>
+                                    <dd class="col-sm-8">{{ booking.room.room_type.amenities|default:"Not specified" }}</dd>
+                                    
+                                    <dt class="col-sm-4">Room Status:</dt>
+                                    <dd class="col-sm-8">
+                                        {% if booking.room.status == 'available' %}
+                                        <span class="badge bg-success">Available</span>
+                                        {% elif booking.room.status == 'occupied' %}
+                                        <span class="badge bg-danger">Occupied</span>
+                                        {% elif booking.room.status == 'maintenance' %}
+                                        <span class="badge bg-warning text-dark">Maintenance</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ booking.room.status|title }}</span>
+                                        {% endif %}
+                                    </dd>
+                                </dl>
+                                
+                                <div class="text-center mt-3">
+                                    <a href="{% url 'room_detail' booking.room.id %}" class="btn btn-outline-primary">
+                                        <i class="fas fa-info-circle me-1"></i> View Room Details
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-user me-2"></i>Guest Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-md-1 text-center">
+                                        <div class="display-5 text-primary">
+                                            <i class="fas fa-user-circle"></i>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <h5>{{ booking.guest.full_name }}</h5>
+                                        <p class="text-muted mb-0">
+                                            {% if booking.guest.email %}
+                                            <a href="mailto:{{ booking.guest.email }}">{{ booking.guest.email }}</a>
+                                            {% endif %}
+                                            {% if booking.guest.phone %}
+                                            <span class="mx-2">|</span> {{ booking.guest.phone }}
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <dl class="row mb-0">
+                                            <dt class="col-sm-4">ID Type:</dt>
+                                            <dd class="col-sm-8">{{ booking.guest.id_type|default:"Not provided" }}</dd>
+                                            
+                                            <dt class="col-sm-4">ID Number:</dt>
+                                            <dd class="col-sm-8">{{ booking.guest.id_number|default:"Not provided" }}</dd>
+                                        </dl>
+                                    </div>
+                                    <div class="col-md-2 text-end">
+                                        <a href="{% url 'guest_detail' booking.guest.id %}" class="btn btn-outline-primary">
+                                            <i class="fas fa-user me-1"></i> View Profile
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                {% if booking.status == 'confirmed' %}
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">Booking Actions</h6>
+                                    <div>
+                                        <a href="#" class="btn btn-primary me-2">
+                                            <i class="fas fa-check-circle me-1"></i> Check In
+                                        </a>
+                                        <a href="#" class="btn btn-danger">
+                                            <i class="fas fa-times-circle me-1"></i> Cancel Booking
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if booking.status == 'checked_in' %}
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">Booking Actions</h6>
+                                    <div>
+                                        <a href="#" class="btn btn-success">
+                                            <i class="fas fa-sign-out-alt me-1"></i> Check Out
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

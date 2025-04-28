@@ -1,0 +1,159 @@
+{% extends 'hotel/base.html' %}
+
+{% block title %}User Details - {{ user_obj.username }}{% endblock %}
+
+{% block page_title %}User Details{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ user_obj.get_full_name|default:user_obj.username }}</h5>
+                <div>
+                    <a href="{% url 'user_edit' user_obj.id %}" class="btn btn-sm btn-light">
+                        <i class="fa fa-edit"></i> Edit
+                    </a>
+                    <a href="{% url 'user_list' %}" class="btn btn-sm btn-light">
+                        <i class="fa fa-arrow-left"></i> Back to List
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">User Information</h6>
+                        <hr>
+                        <dl class="row">
+                            <dt class="col-sm-4">Username:</dt>
+                            <dd class="col-sm-8">{{ user_obj.username }}</dd>
+                            
+                            <dt class="col-sm-4">Full Name:</dt>
+                            <dd class="col-sm-8">{{ user_obj.get_full_name|default:"Not provided" }}</dd>
+                            
+                            <dt class="col-sm-4">Email:</dt>
+                            <dd class="col-sm-8">
+                                {% if user_obj.email %}
+                                <a href="mailto:{{ user_obj.email }}">{{ user_obj.email }}</a>
+                                {% else %}
+                                <span class="text-muted">Not provided</span>
+                                {% endif %}
+                            </dd>
+                            
+                            <dt class="col-sm-4">Role:</dt>
+                            <dd class="col-sm-8">
+                                {% if user_obj.is_superuser %}
+                                <span class="badge bg-danger">Administrator</span>
+                                {% elif user_obj.is_staff %}
+                                <span class="badge bg-primary">Staff</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Receptionist</span>
+                                {% endif %}
+                            </dd>
+                            
+                            <dt class="col-sm-4">Status:</dt>
+                            <dd class="col-sm-8">
+                                {% if user_obj.is_active %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">Inactive</span>
+                                {% endif %}
+                            </dd>
+                            
+                            <dt class="col-sm-4">Date Joined:</dt>
+                            <dd class="col-sm-8">{{ user_obj.date_joined|date:"F d, Y" }}</dd>
+                            
+                            <dt class="col-sm-4">Last Login:</dt>
+                            <dd class="col-sm-8">{{ user_obj.last_login|date:"F d, Y H:i"|default:"Never" }}</dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-primary">User Activity</h6>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card bg-primary text-white">
+                                    <div class="card-body p-3">
+                                        <h6 class="card-title">Total Bookings Created</h6>
+                                        <h2 class="mb-0">{{ bookings_created.count }}</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card bg-success text-white">
+                                    <div class="card-body p-3">
+                                        <h6 class="card-title">Account Age</h6>
+                                        <h4 class="mb-0">{{ user_obj.date_joined|timesince }}</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Recent Bookings Created by User</h5>
+            </div>
+            <div class="card-body">
+                {% if bookings_created %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Booking ID</th>
+                                <th>Guest</th>
+                                <th>Room</th>
+                                <th>Check In</th>
+                                <th>Check Out</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for booking in bookings_created %}
+                            <tr>
+                                <td><a href="{% url 'booking_detail' booking.id %}">{{ booking.booking_id }}</a></td>
+                                <td>{{ booking.guest.full_name }}</td>
+                                <td>{{ booking.room.number }} - {{ booking.room.room_type.name }}</td>
+                                <td>{{ booking.check_in_date|date:"M d, Y" }}</td>
+                                <td>{{ booking.check_out_date|date:"M d, Y" }}</td>
+                                <td>
+                                    {% if booking.status == 'confirmed' %}
+                                    <span class="badge bg-success">Confirmed</span>
+                                    {% elif booking.status == 'checked_in' %}
+                                    <span class="badge bg-primary">Checked In</span>
+                                    {% elif booking.status == 'checked_out' %}
+                                    <span class="badge bg-secondary">Checked Out</span>
+                                    {% elif booking.status == 'cancelled' %}
+                                    <span class="badge bg-danger">Cancelled</span>
+                                    {% elif booking.status == 'no_show' %}
+                                    <span class="badge bg-dark">No Show</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'booking_detail' booking.id %}" class="btn btn-sm btn-info">
+                                        <i class="fa fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    This user has not created any bookings yet.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

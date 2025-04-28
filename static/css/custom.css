@@ -1,0 +1,109 @@
+/* Custom Dashboard Styles */
+
+/* Icon styles */
+.icon-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+}
+
+.icon-circle-lg {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.icon-square {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Hover effects */
+.hover-bg-light:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+    transition: background-color 0.3s ease;
+}
+
+/* Gradient backgrounds */
+.blue-gradient {
+    background: linear-gradient(to right, #4e73df, #224abe);
+    color: white;
+}
+
+.green-gradient {
+    background: linear-gradient(to right, #1cc88a, #169a6e);
+    color: white;
+}
+
+.purple-gradient {
+    background: linear-gradient(to right, #6f42c1, #4e2b89);
+    color: white;
+}
+
+/* Avatar */
+.avatar {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.avatar-sm {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+}
+
+.avatar-text {
+    text-transform: uppercase;
+}
+
+/* Custom card styles */
+.stats-card {
+    transition: transform 0.3s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+}
+
+.quick-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+}
+
+.quick-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Color utilities */
+.text-purple {
+    color: #6f42c1;
+}
+
+/* Table header overrides to ensure black text */
+.table thead th,
+.table thead th.text-dark,
+.table-light th,
+.table-light th.text-dark {
+    color: #212529 !important; /* Bootstrap's default dark color */
+    font-weight: 600;
+} 

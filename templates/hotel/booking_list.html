@@ -1,0 +1,170 @@
+{% extends "hotel/base.html" %}
+
+{% block title %}Bookings - Hotel Booking System{% endblock %}
+
+{% block page_title %}Booking Management{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Bookings</h5>
+            {% if user.is_superuser %}
+            <a href="{% url 'booking_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Add New Booking
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Search and Filter Section -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search bookings...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select id="statusFilter" class="form-select">
+                    <option value="">All Statuses</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="checked_in">Checked In</option>
+                    <option value="checked_out">Checked Out</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <input type="date" id="dateFilter" class="form-control" placeholder="Filter by date">
+            </div>
+            <div class="col-md-3">
+                <select id="roomTypeFilter" class="form-select">
+                    <option value="">All Room Types</option>
+                    {% for type in room_types %}
+                    <option value="{{ type.id }}">{{ type.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Dynamic Content Container -->
+        <div id="bookingTableContainer">
+            {% include "hotel/includes/booking_table.html" %}
+        </div>
+
+        <!-- Booking Statistics -->
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Total Bookings</h6>
+                        <h2 class="mb-0">{{ total_bookings }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Active Bookings</h6>
+                        <h2 class="mb-0">{{ active_bookings }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Today's Check-ins</h6>
+                        <h2 class="mb-0">{{ todays_checkins }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Today's Check-outs</h6>
+                        <h2 class="mb-0">{{ todays_checkouts }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Debounce function
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // Function to update the booking list
+    function updateBookingList() {
+        const searchQuery = document.getElementById('searchInput').value;
+        const statusFilter = document.getElementById('statusFilter').value;
+        const dateFilter = document.getElementById('dateFilter').value;
+        const roomTypeFilter = document.getElementById('roomTypeFilter').value;
+
+        // Create URL with query parameters
+        const params = new URLSearchParams();
+        if (searchQuery) params.append('search', searchQuery);
+        if (statusFilter) params.append('status', statusFilter);
+        if (dateFilter) params.append('date', dateFilter);
+        if (roomTypeFilter) params.append('room_type', roomTypeFilter);
+
+        // Fetch updated data
+        fetch(`${window.location.pathname}?${params.toString()}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.text();
+        })
+        .then(html => {
+            document.getElementById('bookingTableContainer').innerHTML = html;
+            
+            // Update URL without reloading
+            const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+            window.history.pushState({ path: newUrl }, '', newUrl);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    // Debounced search function
+    const debouncedSearch = debounce(() => updateBookingList(), 300);
+
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set initial values from URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        document.getElementById('searchInput').value = urlParams.get('search') || '';
+        document.getElementById('statusFilter').value = urlParams.get('status') || '';
+        document.getElementById('dateFilter').value = urlParams.get('date') || '';
+        document.getElementById('roomTypeFilter').value = urlParams.get('room_type') || '';
+        
+        // Search input
+        document.getElementById('searchInput').addEventListener('input', debouncedSearch);
+
+        // Filters
+        document.getElementById('statusFilter').addEventListener('change', updateBookingList);
+        document.getElementById('dateFilter').addEventListener('change', updateBookingList);
+        document.getElementById('roomTypeFilter').addEventListener('change', updateBookingList);
+    });
+</script>
+{% endblock %} 

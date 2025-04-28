@@ -1,0 +1,179 @@
+{% extends "hotel/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    {% if form.instance.pk %}Edit Guest{% else %}Add New Guest{% endif %}
+{% endblock %}
+
+{% block page_title %}
+    {% if form.instance.pk %}Edit Guest{% else %}Add New Guest{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-user me-2"></i>
+            {% if form.instance.pk %}
+                Edit Guest Details
+            {% else %}
+                Add New Guest
+            {% endif %}
+        </h5>
+        <a href="{% url 'guest_list' %}" class="btn btn-sm btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Guests
+        </a>
+    </div>
+    <div class="card-body">
+        <form method="post" class="needs-validation" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+            {% if next_url %}
+            <input type="hidden" name="next" value="{{ next_url }}">
+            {% endif %}
+            
+            <div class="row">
+                <div class="col-md-6">
+                    {{ form.full_name|as_crispy_field }}
+                    {{ form.email|as_crispy_field }}
+                    {{ form.phone|as_crispy_field }}
+                    {{ form.address|as_crispy_field }}
+                    {{ form.country|as_crispy_field }}
+                    {{ form.notes|as_crispy_field }}
+                </div>
+                <div class="col-md-6">
+                    {{ form.id_type|as_crispy_field }}
+                    {{ form.id_number|as_crispy_field }}
+                    <div class="mb-3">
+                        <label for="id_id_document" class="form-label">ID Document Image <span id="doc-required" class="text-danger">*</span></label>
+                        {{ form.id_document }}
+                        <div class="invalid-feedback">Please upload a valid ID document image.</div>
+                        <small id="id-doc-help" class="form-text text-muted">Upload a clear image of the ID document</small>
+                        <div id="imagePreviewContainer" class="mt-2" style="display: none;">
+                            <img id="imagePreview" src="#" alt="ID Document Preview" class="img-fluid border rounded" style="max-height: 200px;">
+                        </div>
+                        {% if form.instance.id_document %}
+                        <div class="mt-2">
+                            <p class="mb-1">Current document:</p>
+                            <img src="{{ form.instance.id_document.url }}" alt="Current ID Document" class="img-fluid border rounded" style="max-height: 200px;">
+                        </div>
+                        {% endif %}
+                    </div>
+                    {{ form.vehicle_number|as_crispy_field }}
+                </div>
+            </div>
+
+            {% if form.errors %}
+            <div class="alert alert-danger mt-3">
+                <h5 class="alert-heading">Please correct the following errors:</h5>
+                {% for field in form %}
+                    {% for error in field.errors %}
+                    <p class="mb-0">{{ field.label }}: {{ error }}</p>
+                    {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                <p class="mb-0">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="mt-4 text-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>
+                    {% if form.instance.pk %}Update Guest{% else %}Save Guest{% endif %}
+                </button>
+                <a href="{% url 'guest_list' %}" class="btn btn-secondary ms-2">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize form validation
+    (function () {
+        'use strict'
+        var forms = document.querySelectorAll('.needs-validation')
+        Array.prototype.slice.call(forms)
+            .forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+                    form.classList.add('was-validated')
+                }, false)
+            })
+    })()
+
+    // Handle country selection
+    document.addEventListener('DOMContentLoaded', function() {
+        const countrySelect = document.getElementById('id_country');
+        const idTypeSelect = document.getElementById('id_id_type');
+        const idNumberInput = document.getElementById('id_id_number');
+        const idDocumentInput = document.getElementById('id_id_document');
+        const idDocHelp = document.getElementById('id-doc-help');
+        const imagePreview = document.getElementById('imagePreview');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+
+        // Handle image preview
+        idDocumentInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const file = this.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreviewContainer.style.display = 'block';
+                };
+                
+                reader.readAsDataURL(file);
+            } else {
+                imagePreviewContainer.style.display = 'none';
+            }
+        });
+
+        function updateIdType() {
+            const selectedCountry = countrySelect.value;
+            if (selectedCountry === 'PK') {
+                // For Pakistan
+                idTypeSelect.value = 'cnic';
+                idNumberInput.placeholder = 'Enter 13-digit CNIC number (e.g., 12345-6789012-3)';
+                // Keep id_type enabled but show hint
+                idTypeSelect.parentElement.querySelector('.form-text').textContent = 'For Pakistani residents, CNIC is preferred';
+                // Update document requirements
+                idDocHelp.textContent = 'Upload a clear image of CNIC (front and back in single image)';
+                idDocumentInput.setAttribute('required', 'required');
+            } else if (selectedCountry) {
+                // For all other countries
+                idTypeSelect.value = 'passport';
+                idNumberInput.placeholder = 'Enter passport number';
+                idTypeSelect.parentElement.querySelector('.form-text').textContent = 'For international guests, passport is preferred';
+                // Update document requirements
+                idDocHelp.textContent = 'Upload a clear image of passport ID page';
+                idDocumentInput.setAttribute('required', 'required');
+            } else {
+                // No country selected
+                idDocumentInput.removeAttribute('required');
+                idDocHelp.textContent = 'Upload a clear image of the ID document';
+            }
+        }
+
+        // Add a small hint text under the ID type field
+        if (!idTypeSelect.parentElement.querySelector('.form-text')) {
+            const hint = document.createElement('small');
+            hint.className = 'form-text text-muted';
+            hint.textContent = 'Select identification type';
+            idTypeSelect.parentElement.appendChild(hint);
+        }
+
+        // Add event listener for country selection
+        countrySelect.addEventListener('change', updateIdType);
+
+        // Initialize on page load
+        if (countrySelect.value) {
+            updateIdType();
+        }
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Booking Receipt #{{ booking.booking_id }}</title>
+    <style>
+        @page {
+            size: a4;
+            margin: 0.5cm;
+        }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            line-height: 1.1;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            font-size: 8pt;
+            background-color: #fff;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 8px;
+            border: 1px solid #3498db;
+            box-sizing: border-box;
+        }
+        .header {
+            margin-bottom: 15px;
+            position: relative;
+        }
+        .hotel-info {
+            float: left;
+            text-align: left;
+            width: 50%;
+        }
+        .receipt-title {
+            float: right;
+            text-align: right;
+            width: 50%;
+            color: #999;
+            font-size: 22pt;
+            font-weight: normal;
+            margin-top: 0;
+        }
+        .hotel-name {
+            font-size: 14pt;
+            font-weight: bold;
+            margin: 0 0 2px 0;
+            color: #2c3e50;
+        }
+        .hotel-slogan {
+            font-style: italic;
+            margin: 0 0 4px 0;
+            font-size: 9pt;
+            color: #7f8c8d;
+        }
+        .hotel-address {
+            margin: 0 0 1px 0;
+            font-size: 8pt;
+        }
+        .hotel-contact {
+            margin: 0 0 1px 0;
+            font-size: 8pt;
+        }
+        .hotel-website {
+            margin: 0;
+            font-size: 8pt;
+            color: #3498db;
+        }
+        .clearfix:after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+        table.info-table {
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+        }
+        table.info-table th, table.info-table td {
+            padding: 4px;
+            border: 1px solid #ddd;
+        }
+        table.info-table th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+            text-align: left;
+        }
+        .two-columns {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .column {
+            width: 48%;
+        }
+        .bill-to {
+            margin-bottom: 10px;
+        }
+        .bill-to h2 {
+            font-size: 10pt;
+            margin: 0 0 4px 0;
+            color: #2c3e50;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 2px;
+        }
+        .bill-info {
+            line-height: 1.2;
+        }
+        .bill-row {
+            margin-bottom: 2px;
+        }
+        .bill-label {
+            font-weight: bold;
+            display: inline-block;
+            width: 80px;
+            vertical-align: top;
+            font-size: 8pt;
+        }
+        .bill-value {
+            display: inline-block;
+            font-size: 8pt;
+        }
+        .booking-info h2 {
+            font-size: 10pt;
+            margin: 0 0 4px 0;
+            color: #2c3e50;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 2px;
+        }
+        .booking-row {
+            margin-bottom: 2px;
+        }
+        .booking-label {
+            font-weight: bold;
+            display: inline-block;
+            width: 80px;
+            vertical-align: top;
+            font-size: 8pt;
+        }
+        .booking-value {
+            display: inline-block;
+            font-size: 8pt;
+        }
+        .items-table {
+            margin-top: 10px;
+            border: 1px solid #ddd;
+        }
+        .items-table th {
+            background-color: #3498db;
+            color: white;
+            text-align: left;
+            padding: 4px;
+            border: 1px solid #ddd;
+            font-size: 8pt;
+        }
+        .items-table td {
+            padding: 4px;
+            border: 1px solid #ddd;
+            text-align: left;
+            font-size: 8pt;
+        }
+        .items-table td.amount {
+            text-align: right;
+        }
+        .items-table tr.summary-row td {
+            text-align: right;
+            border-left: none;
+            border-right: none;
+            padding-right: 4px;
+        }
+        .items-table tr.total-row td {
+            text-align: right;
+            border-top: 2px solid #333;
+            border-bottom: none;
+            border-left: none;
+            border-right: none;
+            padding-right: 4px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .footer {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 8pt;
+            color: #7f8c8d;
+            border-top: 1px solid #eee;
+            padding-top: 6px;
+        }
+        .payment-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            font-weight: bold;
+            font-size: 9pt;
+            border-radius: 3px;
+            margin: 8px 0;
+        }
+        .paid {
+            background-color: #e8f8f5;
+            color: #27ae60;
+            border: 1px solid #27ae60;
+        }
+        .unpaid {
+            background-color: #fef5f5;
+            color: #e74c3c;
+            border: 1px solid #e74c3c;
+        }
+        @media print {
+            body {
+                padding: 0;
+                margin: 0;
+            }
+            .container {
+                padding: 5px;
+                width: 100%;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header clearfix">
+            <div class="hotel-info">
+                <h1 class="hotel-name">Hotel Booking System</h1>
+                <p class="hotel-slogan">Your home away from home</p>
+                <p class="hotel-address">123 Hotel Street, City Name, Country 12345</p>
+                <p class="hotel-contact">Tel: +123 456 7890</p>
+                <p class="hotel-website">www.hotelbookingsystem.com</p>
+            </div>
+            <h1 class="receipt-title">Hotel Receipt</h1>
+        </div>
+        
+        <table class="info-table">
+            <tr>
+                <th width="25%">Receipt Number</th>
+                <th width="25%">Date</th>
+                <th width="25%">Room Number</th>
+                <th width="25%">Status</th>
+            </tr>
+            <tr>
+                <td>{{ booking.booking_id|truncatechars:8 }}</td>
+                <td>{{ booking.created_at|date:"d/m/Y" }}</td>
+                <td>{{ booking.room.number }}</td>
+                <td>{% if booking.status == 'confirmed' %}PAID{% elif booking.payment_status %}PAID{% else %}UNPAID{% endif %}</td>
+            </tr>
+        </table>
+        
+        <div class="two-columns">
+            <div class="column bill-to">
+                <h2>Bill To:</h2>
+                <div class="bill-info">
+                    <div class="bill-row"><span class="bill-label">Guest Name:</span> <span class="bill-value">{{ booking.guest.full_name }}</span></div>
+                    {% if booking.guest.email %}
+                    <div class="bill-row"><span class="bill-label">Email:</span> <span class="bill-value">{{ booking.guest.email }}</span></div>
+                    {% endif %}
+                    <div class="bill-row"><span class="bill-label">Phone:</span> <span class="bill-value">{{ booking.guest.phone }}</span></div>
+                    {% if booking.guest.address %}
+                    <div class="bill-row"><span class="bill-label">Address:</span> <span class="bill-value">{{ booking.guest.address|truncatechars:30 }}</span></div>
+                    {% endif %}
+                    <div class="bill-row"><span class="bill-label">Country:</span> <span class="bill-value">
+                        {% for code, name in booking.guest.COUNTRY_CHOICES %}
+                            {% if code == booking.guest.country %}{{ name }}{% endif %}
+                        {% endfor %}
+                    </span></div>
+                </div>
+            </div>
+            <div class="column booking-info">
+                <h2>Booking Details:</h2>
+                <div class="booking-row"><span class="booking-label">Check-in:</span> <span class="booking-value">{{ booking.check_in_date|date:"D, d M Y" }}</span></div>
+                <div class="booking-row"><span class="booking-label">Check-out:</span> <span class="booking-value">{{ booking.check_out_date|date:"D, d M Y" }}</span></div>
+                <div class="booking-row"><span class="booking-label">Nights:</span> <span class="booking-value">{{ booking.check_out_date|timeuntil:booking.check_in_date|slice:":-7" }}</span></div>
+                <div class="booking-row"><span class="booking-label">Room Type:</span> <span class="booking-value">{{ booking.room.room_type.name }}</span></div>
+                <div class="booking-row"><span class="booking-label">Guests:</span> <span class="booking-value">{{ booking.adults }} Adult(s){% if booking.children > 0 %}, {{ booking.children }} Child(ren){% endif %}</span></div>
+                <div class="booking-row"><span class="booking-label">Room Rate:</span> <span class="booking-value">Rs{{ booking.room.room_type.price_per_night }}/night</span></div>
+            </div>
+        </div>
+        
+        <table class="items-table">
+            <tr>
+                <th width="50%">Description</th>
+                <th width="15%">Quantity</th>
+                <th width="15%">Rate</th>
+                <th width="20%">Amount</th>
+            </tr>
+            <tr>
+                <td>Room Rental ({{ booking.room.room_type.name }})</td>
+                <td>{{ booking.check_out_date|timeuntil:booking.check_in_date|slice:":-7" }}</td>
+                <td>Rs{{ booking.room.room_type.price_per_night }}</td>
+                <td class="amount">Rs{{ booking.total_price }}</td>
+            </tr>
+            {% if booking.special_requests %}
+            <tr>
+                <td colspan="4" style="font-size: 7pt;"><strong>Special Requests:</strong> {{ booking.special_requests|truncatechars:75 }}</td>
+            </tr>
+            {% endif %}
+            <tr class="summary-row">
+                <td colspan="3">Subtotal</td>
+                <td class="amount">Rs{{ booking.total_price }}</td>
+            </tr>
+            <tr class="summary-row">
+                <td colspan="3">Taxes (0%)</td>
+                <td class="amount">Rs0.00</td>
+            </tr>
+            <tr class="total-row">
+                <td colspan="3">TOTAL</td>
+                <td class="amount">Rs{{ booking.total_price }}</td>
+            </tr>
+        </table>
+        
+        <div style="text-align: center;">
+            <div class="payment-badge {% if booking.status == 'confirmed' %}paid{% elif booking.payment_status %}paid{% else %}unpaid{% endif %}">
+                {% if booking.status == 'confirmed' %}
+                PAID
+                {% elif booking.payment_status %}
+                PAID
+                {% else %}
+                UNPAID
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Thank you for choosing Hotel Booking System. We look forward to your stay!</p>
+            <p>This is a computer-generated receipt and does not require a signature.</p>
+        </div>
+    </div>
+</body>
+</html> 

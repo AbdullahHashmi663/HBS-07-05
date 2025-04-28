@@ -1,0 +1,217 @@
+{% extends "hotel/base.html" %}
+
+{% block title %}Users - Hotel Booking System{% endblock %}
+
+{% block page_title %}User Management{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-users me-2"></i>Users</h5>
+            {% if user.is_superuser %}
+            <a href="{% url 'user_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Add New User
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Search and Filter Section -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search by username, email, name...">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <select id="roleFilter" class="form-select">
+                    <option value="">All Roles</option>
+                    <option value="admin">Administrators</option>
+                    <option value="receptionist">Receptionists</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <select id="statusFilter" class="form-select">
+                    <option value="">All Statuses</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Dynamic Content Container -->
+        <div id="userTableContainer">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Full Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Last Login</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user_obj in users %}
+                        <tr>
+                            <td>{{ user_obj.username }}</td>
+                            <td>{{ user_obj.get_full_name }}</td>
+                            <td>{{ user_obj.email }}</td>
+                            <td>
+                                {% if user_obj.is_superuser %}
+                                <span class="badge bg-danger">Administrator</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Receptionist</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user_obj.is_active %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user_obj.last_login %}
+                                {{ user_obj.last_login|date:"M d, Y H:i" }}
+                                {% else %}
+                                <span class="text-muted">Never</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{% url 'user_detail' user_obj.id %}" class="btn btn-sm btn-outline-primary" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if user.is_superuser %}
+                                    <a href="{% url 'user_edit' user_obj.id %}" class="btn btn-sm btn-outline-secondary" title="Edit User">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% if user_obj.is_active %}
+                                    <a href="{% url 'user_deactivate' user_obj.id %}" class="btn btn-sm btn-outline-warning" title="Deactivate User">
+                                        <i class="fas fa-user-slash"></i>
+                                    </a>
+                                    {% else %}
+                                    <a href="{% url 'user_activate' user_obj.id %}" class="btn btn-sm btn-outline-success" title="Activate User">
+                                        <i class="fas fa-user-check"></i>
+                                    </a>
+                                    {% endif %}
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                <p class="text-muted mb-0">
+                                    <i class="fas fa-info-circle me-2"></i>No users found.
+                                </p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- User Statistics -->
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Total Users</h6>
+                        <h2 class="mb-0">{{ users.count }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Administrators</h6>
+                        <h2 class="mb-0">{{ admin_count }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-secondary text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Receptionists</h6>
+                        <h2 class="mb-0">{{ receptionist_count }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Active Users</h6>
+                        <h2 class="mb-0">{{ active_count }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Debounce function
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // Function to update the user list
+    function updateUserList() {
+        const searchQuery = document.getElementById('searchInput').value;
+        const roleFilter = document.getElementById('roleFilter').value;
+        const statusFilter = document.getElementById('statusFilter').value;
+
+        const params = new URLSearchParams({
+            search: searchQuery,
+            role: roleFilter,
+            status: statusFilter
+        });
+
+        fetch(`{% url 'user_list' %}?${params.toString()}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('userTableContainer').innerHTML = html;
+            // Update URL without reloading
+            window.history.pushState({}, '', `?${params.toString()}`);
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    // Debounced search function
+    const debouncedSearch = debounce(() => updateUserList(), 300);
+
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        // Search input
+        document.getElementById('searchInput').addEventListener('input', debouncedSearch);
+
+        // Filters
+        document.getElementById('roleFilter').addEventListener('change', updateUserList);
+        document.getElementById('statusFilter').addEventListener('change', updateUserList);
+    });
+</script>
+{% endblock %} 

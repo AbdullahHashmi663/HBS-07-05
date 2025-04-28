@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Hotel Booking System{% endblock %}</title>
+    
+    <!-- Theme initialization script - must be loaded at the top to avoid FOUC -->
+    <script>
+        // Initialize theme from localStorage
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme_settings');
+            if (savedTheme) {
+                try {
+                    const themeData = JSON.parse(savedTheme);
+                    if (themeData) {
+                        // Apply theme colors to CSS variables
+                        document.documentElement.style.setProperty('--primary-color', themeData.primaryColor || '#4285F4');
+                        document.documentElement.style.setProperty('--secondary-color', themeData.secondaryColor || '#34A853');
+                        document.documentElement.style.setProperty('--danger-color', themeData.dangerColor || '#EA4335');
+                        document.documentElement.style.setProperty('--warning-color', themeData.warningColor || '#FBBC05');
+                        document.documentElement.style.setProperty('--sidebar-color', themeData.sidebarColor || '#343a40');
+                    }
+                } catch (e) {
+                    console.error('Error loading theme from localStorage:', e);
+                }
+            }
+        }
+        
+        // Call immediately to apply theme before page renders
+        initializeTheme();
+    </script>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Chart.js -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/custom.css">
+    <style>
+        :root {
+            --primary-color: #4285F4;
+            --secondary-color: #34A853;
+            --danger-color: #EA4335;
+            --warning-color: #FBBC05;
+            --sidebar-color: #343a40;
+            --dark-color: #333;
+            --light-color: #f4f4f4;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 250px;
+            background: var(--sidebar-color) !important;
+            color: white;
+            z-index: 1000;
+            transition: all 0.3s;
+        }
+        
+        /* Enhanced Logo Styles */
+        .logo-container {
+            padding: 20px;
+            background-color: var(--sidebar-color);
+            filter: brightness(0.8);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+        
+        .logo-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        .logo-text {
+            font-size: 1.8rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            background: linear-gradient(45deg, #fff, #f0f0f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .logo-subtitle {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-top: 5px;
+        }
+        
+        @keyframes glow {
+            from {
+                filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.6))
+                       drop-shadow(0 0 4px rgba(255, 255, 255, 0.4))
+                       drop-shadow(0 0 6px rgba(255, 255, 255, 0.2));
+            }
+            to {
+                filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.8))
+                       drop-shadow(0 0 8px rgba(255, 255, 255, 0.6))
+                       drop-shadow(0 0 12px rgba(255, 255, 255, 0.4));
+            }
+        }
+        
+        /* Media query for logo responsiveness */
+        @media (max-width: 768px) {
+            .logo-container {
+                padding: 10px;
+                text-align: center;
+            }
+            
+            .logo-icon {
+                font-size: 2rem;
+                margin-bottom: 0;
+            }
+            
+            .logo-text, .logo-subtitle {
+                display: none;
+            }
+        }
+        
+        .sidebar .nav-item {
+            padding: 10px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+        
+        .sidebar .nav-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar .nav-item.active {
+            background: var(--primary-color);
+            border-left: 4px solid var(--secondary-color);
+        }
+        
+        .sidebar .nav-link {
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+        
+        .sidebar .nav-link i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .offline-mode {
+            margin: 20px;
+            padding: 10px;
+            background-color: #FBBC05;
+            color: #333;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        /* Main content */
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid #eee;
+        }
+        
+        .navbar .dropdown-toggle::after {
+            display: none;
+        }
+        
+        /* Cards */
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            border: none;
+        }
+        
+        .card-header {
+            background-color: var(--primary-color) !important;
+            color: white !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.125);
+            border-radius: 10px 10px 0 0 !important;
+            padding: 15px;
+            font-weight: bold;
+        }
+        
+        .card-header h5, .card-header h6 {
+            color: white !important;
+            margin-bottom: 0;
+        }
+        
+        .card-header.bg-light, .card-header.bg-primary {
+            background-color: var(--primary-color) !important;
+            color: white !important;
+        }
+        
+        .stats-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid;
+        }
+        
+        .stats-card.blue {
+            border-left-color: var(--primary-color);
+        }
+        
+        .stats-card.green {
+            border-left-color: var(--secondary-color);
+        }
+        
+        .stats-card.yellow {
+            border-left-color: var(--warning-color);
+        }
+        
+        .stats-card.red {
+            border-left-color: var(--danger-color);
+        }
+        
+        .stats-card .stats-icon {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 48px;
+            opacity: 0.2;
+        }
+        
+        .stats-card .stats-title {
+            color: #666;
+            font-size: 14px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            text-align: left;
+        }
+        
+        .stats-card .stats-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 0;
+            text-align: left;
+        }
+        
+        /* Quick Access */
+        .quick-access {
+            margin-bottom: 30px;
+        }
+        
+        .quick-access-title {
+            margin-bottom: 20px;
+            color: #333;
+            font-weight: bold;
+        }
+        
+        .quick-access-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .quick-access-card .icon {
+            margin-right: 20px;
+            font-size: 36px;
+            color: var(--primary-color);
+        }
+        
+        .quick-access-card.green .icon {
+            color: var(--secondary-color);
+        }
+        
+        .quick-access-card.blue .icon {
+            color: var(--primary-color);
+        }
+        
+        .quick-access-card h3 {
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+        
+        .quick-access-card p {
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        /* Forms */
+        .form-control {
+            border-radius: 5px;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(66, 133, 244, 0.25);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: #3367d6;
+            border-color: #3367d6;
+        }
+        
+        .btn-success {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        
+        .btn-success:hover {
+            background-color: #2d9348;
+            border-color: #2d9348;
+        }
+        
+        /* Tables */
+        .table {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .table thead {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .table thead th {
+            border-top: none;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 12px;
+            color: white;
+        }
+        
+        /* Login Page */
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #7b1fa2, #4285F4);
+        }
+        
+        .login-form {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            width: 400px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .login-title {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        
+        .login-input {
+            position: relative;
+        }
+        
+        .login-input i {
+            position: absolute;
+            left: 15px;
+            top: 13px;
+            color: #6c757d;
+        }
+        
+        .login-input input {
+            padding-left: 40px;
+        }
+        
+        .login-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 5px;
+            width: 100%;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .login-header .app-name {
+            font-size: 36px;
+            color: var(--primary-color);
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .login-header .app-subtitle {
+            font-size: 16px;
+            color: #666;
+        }
+        
+        /* Dark mode toggle */
+        .dark-mode-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #343a40;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Media controls for responsive design */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 70px;
+                overflow: hidden;
+            }
+            
+            .sidebar .logo, .sidebar .nav-link span {
+                display: none;
+            }
+            
+            .sidebar .nav-item {
+                text-align: center;
+                padding: 10px;
+            }
+            
+            .sidebar .nav-link i {
+                margin-right: 0;
+                font-size: 20px;
+            }
+            
+            .main-content {
+                margin-left: 70px;
+            }
+            
+            .offline-mode {
+                display: none;
+            }
+            
+            .quick-access-card {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .quick-access-card .icon {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+        }
+        
+        /* Search and Filter Styles */
+        .input-group .input-group-text {
+            background-color: #f8f9fa;
+            border-right: none;
+        }
+        
+        .input-group .form-control {
+            border-left: none;
+        }
+        
+        .input-group .form-control:focus {
+            border-color: #ced4da;
+            box-shadow: none;
+        }
+        
+        .input-group .form-control:focus + .input-group-text {
+            border-color: #ced4da;
+        }
+        
+        .form-select {
+            padding-right: 2.25rem;
+            background-position: right 0.75rem center;
+            background-size: 16px 12px;
+        }
+        
+        .form-select:focus {
+            border-color: #ced4da;
+            box-shadow: none;
+        }
+        
+        /* Table Styles */
+        .table-hover tbody tr:hover {
+            background-color: rgba(0, 123, 255, 0.05);
+        }
+        
+        /* Button Styles */
+        .btn-group .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .btn-group .btn i {
+            font-size: 0.875rem;
+        }
+        
+        /* Color all header elements with bg-light */
+        .bg-light.card-header {
+            background-color: var(--primary-color) !important;
+            color: white !important;
+        }
+        
+        /* Statistic cards should use primary color */
+        .card.bg-primary, 
+        .card.bg-success, 
+        .card.bg-info, 
+        .card.bg-warning {
+            background-color: var(--primary-color) !important;
+            color: white !important;
+        }
+        
+        .card.bg-primary .card-title, 
+        .card.bg-success .card-title, 
+        .card.bg-info .card-title, 
+        .card.bg-warning .card-title {
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        /* Icon boxes should use primary color */
+        .icon-box.bg-primary {
+            background-color: var(--primary-color) !important;
+        }
+        
+        /* Placeholder charts and bg-light elements */
+        .placeholder-chart.bg-light,
+        .card.bg-light,
+        .bg-light:not(.card-header) {
+            background-color: rgba(var(--primary-rgb), 0.1) !important;
+            border-color: rgba(var(--primary-rgb), 0.2) !important;
+            color: var(--text-color) !important;
+        }
+        
+        /* Add primary color accent to borders */
+        .border {
+            border-color: rgba(var(--primary-rgb), 0.2) !important;
+        }
+        
+        /* Real-time clock styles */
+        #realTimeClock {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--primary-color);
+            padding: 0.5rem;
+            border-radius: 4px;
+            background-color: rgba(var(--primary-rgb), 0.1);
+        }
+        
+        @media (max-width: 768px) {
+            #realTimeClock {
+                font-size: 0.8rem;
+                padding: 0.3rem;
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% if user.is_authenticated %}
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo-container">
+            <div class="logo-icon">
+                <i class="fas fa-hotel"></i>
+            </div>
+            <div class="logo-text">HBS</div>
+            <div class="logo-subtitle">Hotel Booking System</div>
+        </div>
+        <ul class="nav flex-column">
+            <li class="nav-item {% if request.path == '/hotel/' %}active{% endif %}">
+                <a class="nav-link" href="{% url 'dashboard' %}">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="nav-item {% if '/room-types/' in request.path %}active{% endif %}">
+                <a class="nav-link" href="{% url 'room_type_list' %}">
+                    <i class="fas fa-bed"></i>
+                    <span>Room Types</span>
+                </a>
+            </li>
+            <li class="nav-item {% if '/rooms/' in request.path %}active{% endif %}">
+                <a class="nav-link" href="{% url 'room_list' %}">
+                    <i class="fas fa-door-open"></i>
+                    <span>Rooms</span>
+                </a>
+            </li>
+            <li class="nav-item {% if '/guests/' in request.path %}active{% endif %}">
+                <a class="nav-link" href="{% url 'guest_list' %}">
+                    <i class="fas fa-users"></i>
+                    <span>Guests</span>
+                </a>
+            </li>
+            <li class="nav-item {% if '/bookings/' in request.path %}active{% endif %}">
+                <a class="nav-link" href="{% url 'booking_list' %}">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Bookings</span>
+                </a>
+            </li>
+            {% if user.profile.role == 'admin' %}
+            <li class="nav-item {% if '/users/' in request.path %}active{% endif %}">
+                <a class="nav-link" href="{% url 'user_list' %}">
+                    <i class="fas fa-user-cog"></i>
+                    <span>Users</span>
+                </a>
+            </li>
+            <li class="nav-item {% if '/reports/' in request.path %}active{% endif %}">
+                <a class="nav-link" href="{% url 'reports' %}">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Reports</span>
+                </a>
+            </li>
+            {% endif %}
+            <li class="nav-item {% if '/settings/theme/' in request.path %}active{% endif %}">
+                <a class="nav-link" href="{% url 'theme_settings' %}">
+                    <i class="fas fa-palette"></i>
+                    <span>Theme Settings</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'logout' %}">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Navbar -->
+        <nav class="navbar navbar-expand-lg navbar-light mb-4">
+            <div class="container-fluid">
+                <h5 class="mb-0">{% block page_title %}Hotel Booking System{% endblock %}</h5>
+                <div class="d-flex align-items-center">
+                    <!-- Real-time Clock -->
+                    <div class="me-4 text-muted">
+                        <i class="fas fa-clock me-1"></i>
+                        <span id="realTimeClock"></span>
+                    </div>
+                    <div class="dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle me-1"></i>
+                            {{ user.get_full_name|default:user.username }}
+                            {% if user.profile.role %}
+                            <span class="badge {% if user.profile.role == 'admin' %}bg-danger{% else %}bg-primary{% endif %} ms-1">
+                                {{ user.profile.role|title }}
+                            </span>
+                            {% endif %}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-user-cog me-2"></i>Profile</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Messages/Alerts -->
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Content Block -->
+        <div class="container-fluid">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+    {% else %}
+    <!-- Login Page -->
+    {% block login_content %}{% endblock %}
+    {% endif %}
+
+    <!-- Dark Mode Toggle -->
+    <!-- 
+    <button class="dark-mode-toggle" id="darkModeToggle">
+        <i class="fas fa-moon"></i>
+    </button>
+    -->
+
+    <!-- Bootstrap JS, Popper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- Custom JS -->
+    <script>
+        // Real-time clock functionality
+        function updateClock() {
+            const now = new Date();
+            const options = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
+                hour12: true 
+            };
+            document.getElementById('realTimeClock').textContent = now.toLocaleString('en-US', options);
+        }
+        
+        // Update clock immediately and then every second
+        updateClock();
+        setInterval(updateClock, 1000);
+        
+        // Dark mode toggle functionality
+        document.getElementById('darkModeToggle').addEventListener('click', function() {
+            document.body.classList.toggle('dark-mode');
+            const icon = this.querySelector('i');
+            if (icon.classList.contains('fa-moon')) {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            } else {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            }
+        });
+        
+        // Apply active class styling on navigation items
+        document.addEventListener('DOMContentLoaded', function() {
+            // Apply theme colors to the active nav item
+            const applyActiveStyles = () => {
+                const activeItems = document.querySelectorAll('.sidebar .nav-item.active');
+                if (activeItems.length > 0) {
+                    const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+                    const secondaryColor = getComputedStyle(document.documentElement).getPropertyValue('--secondary-color').trim();
+                    
+                    activeItems.forEach(item => {
+                        item.style.backgroundColor = primaryColor;
+                        item.style.borderLeftColor = secondaryColor;
+                    });
+                }
+            };
+            
+            // Initial application of styles
+            applyActiveStyles();
+            
+            // Add click handler for nav items
+            const navItems = document.querySelectorAll('.sidebar .nav-item');
+            navItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    // Remove active class from all items
+                    navItems.forEach(i => i.classList.remove('active'));
+                    
+                    // Add active class to clicked item
+                    this.classList.add('active');
+                    
+                    // Apply theme colors
+                    applyActiveStyles();
+                });
+            });
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html> 

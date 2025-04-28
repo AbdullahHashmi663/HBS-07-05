@@ -1,0 +1,447 @@
+{% extends 'hotel/base.html' %}
+{% load static %}
+
+{% block title %}Login - Hotel Booking System{% endblock %}
+
+{% block login_content %}
+<div class="login-container">
+    <div class="form">
+        <div class="app-info">
+            <div class="app-name">HBS</div>
+            <div class="app-subtitle">Hotel Booking System</div>
+        </div>
+        
+        <h2 id="heading">Sign In</h2>
+        
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert-message {% if message.tags == 'error' %}error{% else %}{{ message.tags }}{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <form method="post" action="{% url 'login' %}" class="login-form">
+            {% csrf_token %}
+            
+            <div class="field">
+                <span class="input-icon"><i class="fas fa-user"></i></span>
+                <input autocomplete="off" placeholder="Username" class="input-field" type="text" id="username" name="username" required>
+                <span class="field-focus-effect"></span>
+            </div>
+            
+            <div class="field">
+                <span class="input-icon"><i class="fas fa-lock"></i></span>
+                <input placeholder="Password" class="input-field" type="password" id="password" name="password" required>
+                <span class="field-focus-effect"></span>
+            </div>
+            
+            <div class="btn">
+                <button type="submit" class="login-button">
+                    <span class="button-icon"><i class="fas fa-sign-in-alt"></i></span>
+                    <span class="button-text">Sign In</span>
+                </button>
+            </div>
+        </form>
+        
+        <div class="help-text">
+            Enter your credentials to access the HBS system
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+    
+    :root {
+        /* Default values that will be overridden by theme settings */
+        --primary-color: #4285F4;       
+        --secondary-color: #34A853;    
+        --danger-color: #EA4335;       
+        --warning-color: #FBBC05;      
+        --sidebar-color: #343a40;      
+        --text-color: #333333;         
+        --subtitle-color: #718096;     
+        --input-border: #e2e8f0;       
+        --input-focus: #4299e1;
+        --animation-speed: 0.3s;
+    }
+    
+    body {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+        font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .login-container {
+        width: 100%;
+        max-width: 420px;
+        padding: 20px;
+        background: transparent;
+        perspective: 1000px;
+    }
+    
+    .form {
+        display: flex;
+        flex-direction: column;
+        padding: 2.5rem;
+        background-color: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 16px;
+        box-shadow: 
+            0 10px 25px rgba(0, 0, 0, 0.1),
+            0 5px 15px rgba(0, 0, 0, 0.05),
+            0 0 0 1px rgba(255, 255, 255, 0.2) inset,
+            0 20px 40px rgba(var(--primary-color), 0.15);
+        position: relative;
+        animation: floatIn 0.8s ease-out forwards;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        transform-style: preserve-3d;
+        transition: transform var(--animation-speed), box-shadow var(--animation-speed);
+    }
+    
+    .form:hover {
+        box-shadow: 
+            0 15px 35px rgba(0, 0, 0, 0.1),
+            0 5px 15px rgba(0, 0, 0, 0.05),
+            0 0 0 1px rgba(255, 255, 255, 0.25) inset,
+            0 25px 50px rgba(var(--primary-color), 0.2);
+        transform: translateY(-5px) rotateX(2deg);
+    }
+    
+    .app-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .app-name {
+        font-size: 2.8rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        letter-spacing: 1px;
+        text-shadow: 0 2px 10px rgba(var(--primary-color), 0.2);
+        animation: glow 3s ease-in-out infinite alternate;
+    }
+    
+    .app-subtitle {
+        font-size: 1rem;
+        color: var(--subtitle-color);
+        margin-top: 5px;
+        letter-spacing: 0.5px;
+        font-weight: 300;
+    }
+    
+    #heading {
+        text-align: center;
+        margin: 0 0 2rem;
+        color: var(--text-color);
+        font-size: 1.5rem;
+        font-weight: 600;
+        position: relative;
+        padding-bottom: 10px;
+    }
+    
+    #heading:after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 50px;
+        height: 2px;
+        background: linear-gradient(to right, transparent, var(--primary-color), transparent);
+    }
+    
+    .login-form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .field {
+        position: relative;
+        display: flex;
+        align-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        background-color: rgba(255, 255, 255, 0.5);
+        transition: all var(--animation-speed) ease;
+        overflow: hidden;
+    }
+    
+    .field:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    .field:focus-within {
+        border-color: var(--input-focus);
+        box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.15);
+        transform: translateY(-2px);
+    }
+    
+    .field:focus-within .field-focus-effect {
+        transform: scaleX(1);
+    }
+    
+    .field-focus-effect {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 2px;
+        width: 100%;
+        background-color: var(--primary-color);
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.3s ease;
+    }
+    
+    .input-icon {
+        padding: 0 15px;
+        color: var(--subtitle-color);
+        display: flex;
+        align-items: center;
+        transition: all var(--animation-speed) ease;
+    }
+    
+    .field:focus-within .input-icon {
+        color: var(--primary-color);
+    }
+    
+    .input-field {
+        background: none;
+        border: none;
+        outline: none;
+        width: 100%;
+        padding: 15px 15px 15px 0;
+        color: var(--text-color);
+        font-size: 1rem;
+        font-family: 'Poppins', sans-serif;
+        transition: all var(--animation-speed) ease;
+    }
+    
+    .input-field::placeholder {
+        color: var(--subtitle-color);
+        opacity: 0.7;
+        transition: opacity var(--animation-speed) ease;
+    }
+    
+    .input-field:focus::placeholder {
+        opacity: 0.5;
+    }
+    
+    .btn {
+        margin-top: 1.5rem;
+    }
+    
+    .login-button {
+        width: 100%;
+        padding: 14px;
+        border: none;
+        border-radius: 8px;
+        background-color: var(--primary-color);
+        color: white;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all var(--animation-speed) ease;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+        overflow: hidden;
+        position: relative;
+        font-family: 'Poppins', sans-serif;
+        box-shadow: 0 4px 15px rgba(var(--primary-color), 0.3);
+        z-index: 1;
+    }
+    
+    .login-button:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: all 0.6s ease;
+        z-index: -1;
+    }
+    
+    .login-button:hover {
+        background-color: var(--primary-color);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(var(--primary-color), 0.4);
+    }
+    
+    .login-button:hover:before {
+        left: 100%;
+    }
+    
+    .login-button:active {
+        transform: translateY(1px);
+        box-shadow: 0 2px 10px rgba(var(--primary-color), 0.3);
+    }
+    
+    .help-text {
+        text-align: center;
+        margin-top: 1.5rem;
+        color: var(--subtitle-color);
+        font-size: 0.9rem;
+        font-weight: 300;
+        letter-spacing: 0.2px;
+    }
+    
+    .alert-message {
+        text-align: center;
+        padding: 12px;
+        border-radius: 8px;
+        background-color: #f8f9fa;
+        color: var(--text-color);
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+        animation: slideDown 0.3s ease-out forwards;
+    }
+    
+    .alert-message.error {
+        background-color: var(--danger-color);
+        color: white;
+        border: none;
+        opacity: 0.9;
+    }
+    
+    @keyframes floatIn {
+        0% {
+            opacity: 0;
+            transform: translateY(30px) rotateX(10deg);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0) rotateX(0);
+        }
+    }
+    
+    @keyframes slideDown {
+        0% {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes glow {
+        0% {
+            text-shadow: 0 0 5px rgba(var(--primary-color), 0.5);
+        }
+        100% {
+            text-shadow: 0 0 15px rgba(var(--primary-color), 0.8), 0 0 30px rgba(var(--primary-color), 0.6);
+        }
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/theme_functions.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load theme settings from localStorage
+        const loadThemeSettings = function() {
+            const savedTheme = localStorage.getItem('theme_settings');
+            if (savedTheme) {
+                try {
+                    const themeSettings = JSON.parse(savedTheme);
+                    
+                    // Create RGB version for box shadow effects
+                    const getRgbValues = (hex) => {
+                        const r = parseInt(hex.slice(1, 3), 16);
+                        const g = parseInt(hex.slice(3, 5), 16);
+                        const b = parseInt(hex.slice(5, 7), 16);
+                        return `${r}, ${g}, ${b}`;
+                    };
+                    
+                    // Apply theme settings to CSS variables
+                    const primaryColor = themeSettings.primaryColor || '#4285F4';
+                    const primaryRgb = getRgbValues(primaryColor);
+                    
+                    document.documentElement.style.setProperty('--primary-color', primaryColor);
+                    document.documentElement.style.setProperty('--secondary-color', themeSettings.secondaryColor || '#34A853');
+                    document.documentElement.style.setProperty('--danger-color', themeSettings.dangerColor || '#EA4335');
+                    document.documentElement.style.setProperty('--warning-color', themeSettings.warningColor || '#FBBC05');
+                    document.documentElement.style.setProperty('--sidebar-color', themeSettings.sidebarColor || '#343a40');
+                    
+                    // Set RGB value for shadows and effects
+                    document.documentElement.style.setProperty('--primary-rgb', primaryRgb);
+                    
+                    // Derived colors for login
+                    document.documentElement.style.setProperty('--input-focus', primaryColor);
+                } catch (e) {
+                    console.error('Error parsing theme settings:', e);
+                }
+            }
+        };
+        
+        // Load theme immediately
+        loadThemeSettings();
+        
+        // Add automatic focus on first field
+        setTimeout(() => {
+            document.getElementById('username').focus();
+        }, 500);
+        
+        // Add subtle interactive effects
+        const loginForm = document.querySelector('.form');
+        if (loginForm) {
+            document.addEventListener('mousemove', function(e) {
+                const rect = loginForm.getBoundingClientRect();
+                const x = e.clientX - rect.left; 
+                const y = e.clientY - rect.top;
+                
+                // Calculate rotation based on mouse position
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                const rotateX = (y - centerY) / 50;
+                const rotateY = (centerX - x) / 50;
+                
+                // Apply subtle rotation effect
+                if (x > 0 && x < rect.width && y > 0 && y < rect.height) {
+                    loginForm.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+                } else {
+                    loginForm.style.transform = 'rotateX(0) rotateY(0)';
+                }
+            });
+            
+            // Reset on mouse leave
+            document.addEventListener('mouseleave', function() {
+                loginForm.style.transform = 'rotateX(0) rotateY(0)';
+            });
+        }
+    });
+</script>
+{% endblock %}

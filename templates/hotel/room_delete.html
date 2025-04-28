@@ -1,0 +1,98 @@
+{% extends 'hotel/base.html' %}
+
+{% block title %}Delete Room - Hotel Booking System{% endblock %}
+{% block page_title %}Delete Room{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-trash me-2"></i>Confirm Deletion</h5>
+            </div>
+            <div class="card-body">
+                {% if active_bookings > 0 %}
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Warning!</strong> This room has {{ active_bookings }} active booking(s).
+                    <p class="mb-0 mt-2">Deleting this room will impact existing bookings. It is recommended to cancel the bookings first or reassign them to another room.</p>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Are you sure you want to delete the room <strong>{{ room.number }}</strong>?
+                    <p class="mb-0 mt-2">This action cannot be undone. All booking data associated with this room will be affected.</p>
+                </div>
+                {% endif %}
+                
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Room Details</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <tr>
+                                <th width="30%">Room Number:</th>
+                                <td>{{ room.number }}</td>
+                            </tr>
+                            <tr>
+                                <th>Room Type:</th>
+                                <td>{{ room.room_type.name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Floor:</th>
+                                <td>{{ room.floor }}</td>
+                            </tr>
+                            <tr>
+                                <th>Status:</th>
+                                <td>
+                                    {% if room.status == 'available' %}
+                                        <span class="badge bg-success">Available</span>
+                                    {% elif room.status == 'occupied' %}
+                                        <span class="badge bg-danger">Occupied</span>
+                                    {% elif room.status == 'maintenance' %}
+                                        <span class="badge bg-warning text-dark">Maintenance</span>
+                                    {% elif room.status == 'reserved' %}
+                                        <span class="badge bg-primary">Reserved</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% if active_bookings > 0 %}
+                            <tr>
+                                <th>Active Bookings:</th>
+                                <td><span class="badge bg-danger">{{ active_bookings }}</span></td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'room_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Cancel
+                    </a>
+                    
+                    {% if active_bookings > 0 %}
+                    <div>
+                        <form method="post" action="" class="d-inline-block">
+                            {% csrf_token %}
+                            <input type="hidden" name="force_delete" value="true">
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('WARNING: This will affect active bookings. Are you absolutely sure?')">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Force Delete
+                            </button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <form method="post" action="">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-2"></i>Delete Room
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

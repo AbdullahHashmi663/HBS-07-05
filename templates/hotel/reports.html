@@ -1,0 +1,116 @@
+{% extends 'hotel/base.html' %}
+
+{% block title %}Reports - Hotel Booking System{% endblock %}
+{% block page_title %}Reports Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i> Hotel Performance Reports</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Welcome to the reporting dashboard. Choose a report type below to view detailed statistics and analytics about your hotel's performance.
+                </p>
+                
+                <div class="row g-4 mt-2">
+                    <!-- Occupancy Report Card -->
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="icon-box bg-primary text-white me-3">
+                                        <i class="fas fa-bed"></i>
+                                    </div>
+                                    <h5 class="mb-0">Occupancy Report</h5>
+                                </div>
+                                <p class="text-muted">
+                                    View room occupancy statistics, including occupancy rates, total room nights, and availability trends.
+                                </p>
+                                <a href="{% url 'occupancy_report' %}" class="btn btn-outline-primary">
+                                    <i class="fas fa-chart-bar me-1"></i> View Report
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Revenue Report Card -->
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="icon-box bg-success text-white me-3">
+                                        <i class="fas fa-dollar-sign"></i>
+                                    </div>
+                                    <h5 class="mb-0">Revenue Report</h5>
+                                </div>
+                                <p class="text-muted">
+                                    Analyze revenue by room type, time period, and occupancy. Track financial performance and identify trends.
+                                </p>
+                                <a href="{% url 'revenue_report' %}" class="btn btn-outline-success">
+                                    <i class="fas fa-chart-line me-1"></i> View Report
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row g-4 mt-3">
+                    <!-- Future Reports (placeholder) -->
+                    <div class="col-md-6">
+                        <div class="card h-100 bg-light">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="icon-box bg-secondary text-white me-3">
+                                        <i class="fas fa-user-friends"></i>
+                                    </div>
+                                    <h5 class="mb-0">Guest Analytics</h5>
+                                </div>
+                                <p class="text-muted">
+                                    Analyze guest demographics, booking patterns, and repeat customer statistics.
+                                </p>
+                                <button disabled class="btn btn-outline-secondary">
+                                    <i class="fas fa-tools me-1"></i> Coming Soon
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card h-100 bg-light">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="icon-box bg-info text-white me-3">
+                                        <i class="fas fa-calendar-alt"></i>
+                                    </div>
+                                    <h5 class="mb-0">Seasonal Trends</h5>
+                                </div>
+                                <p class="text-muted">
+                                    View booking patterns and revenue analysis by seasons, holidays, and special events.
+                                </p>
+                                <button disabled class="btn btn-outline-info">
+                                    <i class="fas fa-tools me-1"></i> Coming Soon
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .icon-box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        font-size: 20px;
+    }
+</style>
+{% endblock %} 

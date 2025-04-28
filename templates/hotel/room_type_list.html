@@ -1,0 +1,163 @@
+{% extends "hotel/base.html" %}
+
+{% block title %}Room Types - Hotel Booking System{% endblock %}
+
+{% block page_title %}Room Type Management{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-bed me-2"></i>Room Types</h5>
+            {% if user.is_superuser %}
+            <a href="{% url 'room_type_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Add Room Type
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Search and Filter Section -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search room types...">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <select id="capacityFilter" class="form-select">
+                    <option value="">All Capacities</option>
+                    <option value="1">Single (1)</option>
+                    <option value="2">Double (2)</option>
+                    <option value="3">Triple (3)</option>
+                    <option value="4">Family (4+)</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <select id="priceFilter" class="form-select">
+                    <option value="">All Price Ranges</option>
+                    <option value="budget">Budget (< Rs100)</option>
+                    <option value="standard">Standard (Rs100 - Rs200)</option>
+                    <option value="luxury">Luxury (> Rs200)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Dynamic Content Container -->
+        <div id="roomTypeTableContainer">
+            {% include "hotel/includes/room_type_table.html" %}
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Total Room Types</h6>
+                        <h2 class="mb-0">{{ room_types.count }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Average Price</h6>
+                        <h2 class="mb-0">Rs{{ avg_price|default:"0" }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Total Capacity</h6>
+                        <h2 class="mb-0">{{ total_capacity|default:"0" }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Most Popular Type</h6>
+                        <h2 class="mb-0">{{ most_popular|default:"N/A" }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Debounce function
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // Function to update the room type list
+    function updateRoomTypeList() {
+        const searchQuery = document.getElementById('searchInput').value;
+        const capacityFilter = document.getElementById('capacityFilter').value;
+        const priceFilter = document.getElementById('priceFilter').value;
+
+        // Create URL with query parameters
+        const params = new URLSearchParams();
+        if (searchQuery) params.append('search', searchQuery);
+        if (capacityFilter) params.append('capacity', capacityFilter);
+        if (priceFilter) params.append('price_range', priceFilter);
+
+        // Fetch updated data
+        fetch(`${window.location.pathname}?${params.toString()}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.text();
+        })
+        .then(html => {
+            document.getElementById('roomTypeTableContainer').innerHTML = html;
+            
+            // Update URL without reloading
+            const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+            window.history.pushState({ path: newUrl }, '', newUrl);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    // Debounced search function
+    const debouncedSearch = debounce(() => updateRoomTypeList(), 300);
+
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set initial values from URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        document.getElementById('searchInput').value = urlParams.get('search') || '';
+        document.getElementById('capacityFilter').value = urlParams.get('capacity') || '';
+        document.getElementById('priceFilter').value = urlParams.get('price_range') || '';
+        
+        // Search input
+        document.getElementById('searchInput').addEventListener('input', debouncedSearch);
+
+        // Filters
+        document.getElementById('capacityFilter').addEventListener('change', updateRoomTypeList);
+        document.getElementById('priceFilter').addEventListener('change', updateRoomTypeList);
+    });
+</script>
+{% endblock %} 
