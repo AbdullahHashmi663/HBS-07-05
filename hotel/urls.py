@@ -37,6 +37,7 @@ urlpatterns = [
     path('bookings/<int:pk>/delete/', views.booking_delete, name='booking_delete'),
     path('bookings/<int:pk>/pdf/', views.booking_receipt_pdf, name='booking_receipt_pdf'),
     path('check-availability/', views.check_room_availability, name='check_room_availability'),
+    path('booking/<int:pk>/cancel/', views.booking_cancel, name='booking_cancel'),
     
     # User Management URLs
     path('users/', views.user_list, name='user_list'),

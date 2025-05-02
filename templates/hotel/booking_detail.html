@@ -14,9 +14,11 @@
                         <i class="fas fa-print"></i> Print Receipt
                     </a>
                     {% if user.is_superuser or user.profile.role == 'admin' %}
-                    <a href="{% url 'booking_edit' booking.id %}" class="btn btn-sm btn-light me-2">
-                        <i class="fas fa-edit"></i> Edit
-                    </a>
+                        {% if booking.status != 'cancelled' %}
+                        <a href="{% url 'booking_edit' booking.id %}" class="btn btn-sm btn-light me-2">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                        {% endif %}
                     {% endif %}
                     <a href="{% url 'booking_list' %}" class="btn btn-sm btn-light">
                         <i class="fas fa-arrow-left"></i> Back to List
@@ -24,6 +26,11 @@
                 </div>
             </div>
             <div class="card-body">
+                {% if booking.status == 'cancelled' %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-lock me-2"></i> This booking has been cancelled and is now read-only.
+                </div>
+                {% endif %}
                 <div class="row">
                     <div class="col-md-6 mb-4">
                         <div class="card h-100">
@@ -63,7 +70,9 @@
                                     
                                     <dt class="col-sm-4">Payment Status:</dt>
                                     <dd class="col-sm-8">
-                                        {% if booking.payment_status %}
+                                        {% if booking.status == 'cancelled' %}
+                                        <span class="badge bg-danger">Cancelled - Unpaid</span>
+                                        {% elif booking.payment_status %}
                                         <span class="badge bg-success">Paid</span>
                                         {% else %}
                                         <span class="badge bg-warning text-dark">Unpaid</span>
@@ -192,7 +201,7 @@
                                         <a href="#" class="btn btn-primary me-2">
                                             <i class="fas fa-check-circle me-1"></i> Check In
                                         </a>
-                                        <a href="#" class="btn btn-danger">
+                                        <a href="{% url 'booking_cancel' booking.id %}" class="btn btn-danger">
                                             <i class="fas fa-times-circle me-1"></i> Cancel Booking
                                         </a>
                                     </div>

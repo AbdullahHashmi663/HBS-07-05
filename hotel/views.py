@@ -14,6 +14,9 @@ from functools import wraps
 from .forms import GuestForm, UserForm, RoomForm, ThemeSettingsForm
 
 from xhtml2pdf import pisa
+import xlsxwriter
+from io import BytesIO
+import calendar
 
 # Custom decorators for role-based permissions
 def admin_required(view_func):
@@ -683,13 +686,72 @@ def booking_edit(request, pk):
 @admin_required
 def booking_delete(request, pk):
     booking = get_object_or_404(Booking, pk=pk)
+    room = booking.room
     
     if request.method == 'POST':
-        booking.delete()
-        messages.success(request, 'Booking deleted successfully')
-        return redirect('booking_list')
+        try:
+            # Store room info for updating later
+            room_id = room.id
+            
+            # Delete the booking
+            booking.delete()
+            
+            # Fetch fresh room instance and force update its status
+            room = Room.objects.get(id=room_id)
+            
+            # Check if room has any other active bookings
+            active_bookings = Booking.objects.filter(
+                room=room,
+                status__in=['confirmed', 'checked_in']
+            ).count()
+            
+            if active_bookings == 0:
+                room.status = 'available'
+                room.save(update_fields=['status'])
+                messages.success(request, f'Booking deleted and room {room.number} status updated to available')
+            else:
+                messages.info(request, f'Booking deleted but room {room.number} has other active bookings')
+            
+            return redirect('booking_list')
+            
+        except Exception as e:
+            messages.error(request, f'Error during deletion: {str(e)}')
+            return redirect('booking_list')
         
     return render(request, 'hotel/booking_delete.html', {'booking': booking})
+
+@login_required
+def booking_cancel(request, pk):
+    booking = get_object_or_404(Booking, pk=pk)
+    room = booking.room
+    
+    if request.method == 'POST':
+        try:
+            # Update booking status to cancelled and set payment_status to False
+            booking.status = 'cancelled'
+            booking.payment_status = False  # Set payment status to unpaid when cancelled
+            booking.save()
+            
+            # Check if room has any other active bookings
+            active_bookings = Booking.objects.filter(
+                room=room,
+                status__in=['confirmed', 'checked_in']
+            ).exclude(id=booking.id).count()
+            
+            if active_bookings == 0:
+                room.status = 'available'
+                room.save(update_fields=['status'])
+                messages.success(request, f'Booking cancelled and room {room.number} status updated to available')
+            else:
+                messages.info(request, f'Booking cancelled but room {room.number} has other active bookings')
+            
+            return redirect('booking_list')
+            
+        except Exception as e:
+            messages.error(request, f'Error during cancellation: {str(e)}')
+            return redirect('booking_list')
+        
+    return render(request, 'hotel/booking_cancel.html', {'booking': booking})
 
 @login_required
 def check_room_availability(request):
@@ -1065,21 +1127,24 @@ def revenue_report(request):
         selected_year = current_year
         messages.error(request, 'Invalid year provided. Using current year instead.')
     
-    # Get all bookings in the selected period
-    bookings = Booking.objects.filter(
+    # Get all bookings for display
+    all_bookings = Booking.objects.filter(
         created_at__date__gte=start_date,
         created_at__date__lte=end_date
     )
     
-    # Calculate total revenue
-    total_revenue = bookings.aggregate(total=Sum('total_price'))['total'] or 0
+    # Get valid bookings for revenue calculations (excluding cancelled)
+    valid_bookings = all_bookings.exclude(status='cancelled')
     
-    # Calculate revenue by room type
+    # Calculate total revenue from valid bookings only
+    total_revenue = valid_bookings.aggregate(total=Sum('total_price'))['total'] or 0
+    
+    # Calculate revenue by room type (excluding cancelled bookings)
     revenue_by_room_type = {}
     revenue_percentages = {}
     
     for room_type in RoomType.objects.all():
-        rt_bookings = bookings.filter(room__room_type=room_type)
+        rt_bookings = valid_bookings.filter(room__room_type=room_type)
         revenue = rt_bookings.aggregate(total=Sum('total_price'))['total'] or 0
         if revenue > 0:  # Only include room types with revenue
             revenue_by_room_type[room_type.name] = revenue
@@ -1089,10 +1154,10 @@ def revenue_report(request):
     days_in_period = (end_date - start_date).days + 1
     avg_daily_revenue = total_revenue / days_in_period if days_in_period > 0 else 0
     
-    # Calculate monthly revenue
+    # Calculate monthly revenue (excluding cancelled bookings)
     monthly_revenue = []
     for month in range(1, 13):
-        month_bookings = bookings.filter(created_at__month=month)
+        month_bookings = valid_bookings.filter(created_at__month=month)
         revenue = month_bookings.aggregate(total=Sum('total_price'))['total'] or 0
         booking_count = month_bookings.count()
         month_name = timezone.datetime(2000, month, 1).strftime('%B')
@@ -1107,6 +1172,18 @@ def revenue_report(request):
     available_years = Booking.objects.dates('created_at', 'year')
     years = [date.year for date in available_years]
     
+    # Calculate statistics for valid bookings
+    valid_booking_count = valid_bookings.count()
+    cancelled_booking_count = all_bookings.filter(status='cancelled').count()
+    
+    # Handle export requests
+    export_format = request.GET.get('export')
+    if export_format:
+        if export_format == 'pdf':
+            return generate_revenue_pdf(request, all_bookings, start_date, end_date, total_revenue, revenue_by_room_type, monthly_revenue)
+        elif export_format == 'excel':
+            return generate_revenue_excel(request, all_bookings, start_date, end_date, total_revenue, revenue_by_room_type, monthly_revenue)
+    
     context = {
         'total_revenue': total_revenue,
         'revenue_by_room_type': revenue_by_room_type,
@@ -1114,14 +1191,94 @@ def revenue_report(request):
         'monthly_revenue': monthly_revenue,
         'selected_year': selected_year,
         'available_years': years,
-        'booking_count': bookings.count(),
+        'valid_booking_count': valid_booking_count,
+        'cancelled_booking_count': cancelled_booking_count,
+        'total_booking_count': all_bookings.count(),
         'start_date': start_date,
         'end_date': end_date,
         'days_in_period': days_in_period,
-        'avg_daily_revenue': avg_daily_revenue
+        'avg_daily_revenue': avg_daily_revenue,
+        'bookings': all_bookings  # Show all bookings in the table
     }
     
     return render(request, 'hotel/revenue_report.html', context)
+
+def generate_revenue_pdf(request, bookings, start_date, end_date, total_revenue, revenue_by_room_type, monthly_revenue):
+    template_path = 'hotel/revenue_report_pdf.html'
+    context = {
+        'bookings': bookings,
+        'start_date': start_date,
+        'end_date': end_date,
+        'total_revenue': total_revenue,
+        'revenue_by_room_type': revenue_by_room_type,
+        'monthly_revenue': monthly_revenue
+    }
+    
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="revenue_report_{start_date}_{end_date}.pdf"'
+    
+    template = get_template(template_path)
+    html = template.render(context)
+    
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    if pisa_status.err:
+        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+    return response
+
+def generate_revenue_excel(request, bookings, start_date, end_date, total_revenue, revenue_by_room_type, monthly_revenue):
+    output = BytesIO()
+    workbook = xlsxwriter.Workbook(output)
+    worksheet = workbook.add_worksheet("Revenue Report")
+    
+    # Add headers
+    headers = ['Booking ID', 'Guest', 'Room', 'Check In', 'Check Out', 'Status', 'Total Price', 'Payment Status']
+    for col_num, header in enumerate(headers):
+        worksheet.write(0, col_num, header)
+    
+    # Write booking data
+    for row_num, booking in enumerate(bookings, 1):
+        worksheet.write(row_num, 0, str(booking.pk))
+        worksheet.write(row_num, 1, booking.guest.full_name)
+        worksheet.write(row_num, 2, f"{booking.room.number} ({booking.room.room_type.name})")
+        worksheet.write(row_num, 3, booking.check_in_date.strftime('%Y-%m-%d'))
+        worksheet.write(row_num, 4, booking.check_out_date.strftime('%Y-%m-%d'))
+        worksheet.write(row_num, 5, booking.get_status_display())
+        worksheet.write(row_num, 6, float(booking.total_price))
+        # Handle payment status correctly
+        if booking.status == 'cancelled':
+            payment_status = 'Cancelled - Unpaid'
+        else:
+            payment_status = 'Paid' if booking.payment_status else 'Unpaid'
+        worksheet.write(row_num, 7, payment_status)
+    
+    # Add summary worksheet
+    summary_sheet = workbook.add_worksheet("Summary")
+    summary_sheet.write(0, 0, "Revenue Summary")
+    summary_sheet.write(1, 0, "Total Revenue")
+    summary_sheet.write(1, 1, float(total_revenue))
+    
+    # Add room type revenue
+    summary_sheet.write(3, 0, "Revenue by Room Type")
+    for row_num, (room_type, revenue) in enumerate(revenue_by_room_type.items(), 4):
+        summary_sheet.write(row_num, 0, room_type)
+        summary_sheet.write(row_num, 1, float(revenue))
+    
+    # Add monthly revenue
+    summary_sheet.write(row_num + 2, 0, "Monthly Revenue")
+    for row_num, month_data in enumerate(monthly_revenue, row_num + 3):
+        summary_sheet.write(row_num, 0, month_data['month'])
+        summary_sheet.write(row_num, 1, float(month_data['revenue']))
+        summary_sheet.write(row_num, 2, month_data['booking_count'])
+    
+    workbook.close()
+    output.seek(0)
+    
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="revenue_report_{start_date}_{end_date}.xlsx"'
+    return response
 
 @login_required
 def guest_analytics(request):

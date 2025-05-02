@@ -61,6 +61,21 @@ class Room(models.Model):
 
     def __str__(self):
         return f"Room {self.number} - {self.room_type.name}"
+        
+    def reset_status(self):
+        """Reset room status based on active bookings"""
+        from hotel.models import Booking
+        
+        active_bookings = Booking.objects.filter(
+            room=self,
+            status__in=['confirmed', 'checked_in']
+        ).count()
+        
+        if active_bookings == 0:
+            self.status = 'available'
+            self.save(update_fields=['status'])
+        
+        return self.status
 
 class Guest(models.Model):
     ID_TYPE_CHOICES = [
@@ -121,28 +136,43 @@ class Booking(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Booking {self.booking_id} - {self.guest.full_name}"
+        return f"Booking #{self.pk} - {self.guest.full_name}"
 
     def save(self, *args, **kwargs):
         # Calculate total price if not provided
         if not self.total_price:
             nights = (self.check_out_date - self.check_in_date).days
             self.total_price = self.room.room_type.price_per_night * nights
-            
-        # Update room status when booking is created or updated
-        if self.status == 'confirmed':
-            self.room.status = 'occupied'
-            # Automatically set payment_status to True when status is 'confirmed'
-            self.payment_status = True
-        elif self.status == 'checked_in':
-            self.room.status = 'occupied'
-            # Ensure payment_status is True when checked in
-            self.payment_status = True
-        elif self.status in ['checked_out', 'cancelled', 'no_show']:
-            self.room.status = 'available'
         
-        self.room.save()
+        # Update room status based on booking status
+        if self.status in ['confirmed', 'checked_in']:
+            self.room.status = 'occupied'
+        elif self.status in ['checked_out', 'cancelled', 'no_show']:
+            # Check if there are other active bookings for this room
+            active_bookings = Booking.objects.filter(
+                room=self.room,
+                status__in=['confirmed', 'checked_in']
+            ).exclude(id=self.id).count()
+            
+            if active_bookings == 0:
+                self.room.status = 'available'
+        
+        self.room.save(update_fields=['status'])
         super().save(*args, **kwargs)
+    
+    def delete(self, *args, **kwargs):
+        room = self.room
+        super().delete(*args, **kwargs)
+        
+        # After deletion, check if there are any other active bookings
+        active_bookings = Booking.objects.filter(
+            room=room,
+            status__in=['confirmed', 'checked_in']
+        ).count()
+        
+        if active_bookings == 0:
+            room.status = 'available'
+            room.save(update_fields=['status'])
 
 class ThemeSettings(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='theme_settings')
