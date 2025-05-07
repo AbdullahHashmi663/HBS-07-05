@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import Guest, Room, RoomType, ThemeSettings
+from .models import Guest, Room, RoomType, ThemeSettings, HotelInfo
 
 class GuestForm(forms.ModelForm):
     COUNTRY_CHOICES = [
@@ -52,6 +52,13 @@ class GuestForm(forms.ModelForm):
             'vehicle_number': forms.TextInput(attrs={'class': 'form-control'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # If this is an existing guest with an ID document, make the field not required
+        if self.instance and self.instance.pk and self.instance.id_document:
+            self.fields['id_document'].required = False
+            self.fields['id_document'].widget.attrs['required'] = False
 
     def clean(self):
         cleaned_data = super().clean()
@@ -210,4 +217,23 @@ class ThemeSettingsForm(forms.ModelForm):
                 'data-color-name': 'sidebar',
                 'type': 'color'
             }),
+        }
+
+class HotelInfoForm(forms.ModelForm):
+    class Meta:
+        model = HotelInfo
+        fields = ['name', 'address', 'phone', 'email', 'description']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'address': forms.TextInput(attrs={'class': 'form-control'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+        labels = {
+            'name': 'Hotel Name',
+            'address': 'Address',
+            'phone': 'Contact Number',
+            'email': 'Email Address',
+            'description': 'Short Description',
         } 

@@ -23,9 +23,32 @@
     </div>
 
     <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title">Export with Date Range Filter</h5>
+        </div>
+        <div class="card-body">
+            <form id="export-form" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="date_start" class="form-label">Start Date:</label>
+                    <input type="date" id="date_start" name="date_start" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <label for="date_end" class="form-label">End Date:</label>
+                    <input type="date" id="date_end" name="date_end" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <button type="button" id="export-excel-filtered" class="btn btn-success">
+                        <i class="fas fa-file-excel me-1"></i> Export Filtered Excel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card mb-4">
             <div class="card-body">
             <form method="get" class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                     <label for="year" class="form-label">Select Year</label>
                     <select name="year" id="year" class="form-select">
                         {% for year in available_years %}
@@ -33,8 +56,30 @@
                         {% endfor %}
                     </select>
                         </div>
-                <div class="col-md-4 d-flex align-items-end">
+                        
+                        <div class="col-md-3">
+                    <label for="month" class="form-label">Select Month</label>
+                    <select name="month" id="month" class="form-select">
+                        <option value="">All Months</option>
+                        <option value="1" {% if selected_month == 1 %}selected{% endif %}>January</option>
+                        <option value="2" {% if selected_month == 2 %}selected{% endif %}>February</option>
+                        <option value="3" {% if selected_month == 3 %}selected{% endif %}>March</option>
+                        <option value="4" {% if selected_month == 4 %}selected{% endif %}>April</option>
+                        <option value="5" {% if selected_month == 5 %}selected{% endif %}>May</option>
+                        <option value="6" {% if selected_month == 6 %}selected{% endif %}>June</option>
+                        <option value="7" {% if selected_month == 7 %}selected{% endif %}>July</option>
+                        <option value="8" {% if selected_month == 8 %}selected{% endif %}>August</option>
+                        <option value="9" {% if selected_month == 9 %}selected{% endif %}>September</option>
+                        <option value="10" {% if selected_month == 10 %}selected{% endif %}>October</option>
+                        <option value="11" {% if selected_month == 11 %}selected{% endif %}>November</option>
+                        <option value="12" {% if selected_month == 12 %}selected{% endif %}>December</option>
+                    </select>
+                        </div>
+                <div class="col-md-3 d-flex align-items-end">
                     <button type="submit" class="btn btn-primary">Filter</button>
+                    {% if selected_month %}
+                    <a href="?year={{ selected_year }}" class="btn btn-outline-secondary ms-2">Clear Month Filter</a>
+                    {% endif %}
                         </div>
             </form>
                         </div>
@@ -46,7 +91,7 @@
                 <div class="card-body">
                     <h5 class="card-title">Total Revenue</h5>
                     <h2 class="text-primary">Rs{{ total_revenue|floatformat:2 }}</h2>
-                    <p class="text-muted">From {{ valid_booking_count }} valid bookings</p>
+                    <p class="text-muted">From active and paid cancelled bookings</p>
                 </div>
             </div>
         </div>
@@ -64,8 +109,8 @@
                 <div class="card-body">
                     <h5 class="card-title">Booking Statistics</h5>
                     <p class="mb-1">Total Bookings: {{ total_booking_count }}</p>
-                    <p class="mb-1">Valid Bookings: {{ valid_booking_count }}</p>
-                    <p class="mb-0">Cancelled: {{ cancelled_booking_count }}</p>
+                    <p class="mb-1">Revenue Bookings: {{ total_revenue_bookings }}</p>
+                    <p class="mb-0">Cancelled (Unpaid): {{ cancelled_unpaid_count }}</p>
                 </div>
             </div>
         </div>
@@ -80,12 +125,47 @@
                     </div>
                 </div>
                 
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Active Bookings</h6>
+                    <h2 class="mb-0">{{ active_booking_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Paid Cancelled Bookings</h6>
+                    <h2 class="mb-0">{{ cancelled_paid_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Unpaid Cancelled Bookings</h6>
+                    <h2 class="mb-0">{{ cancelled_unpaid_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h6 class="card-title">Total Revenue Bookings</h6>
+                    <h2 class="mb-0">{{ total_revenue_bookings }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-md-6">
                 <div class="card mb-4">
                     <div class="card-body">
                     <h5 class="card-title">Revenue by Room Type</h5>
-                    <p class="text-muted small">*Revenue calculations exclude cancelled bookings</p>
+                    <p class="text-muted small">*Revenue calculations include all active bookings and paid cancelled bookings</p>
                         <div class="table-responsive">
                         <table class="table">
                             <thead>
@@ -120,7 +200,7 @@
             <div class="card mb-4">
                 <div class="card-body">
                     <h5 class="card-title">Monthly Revenue</h5>
-                    <p class="text-muted small">*Revenue calculations exclude cancelled bookings</p>
+                    <p class="text-muted small">*Revenue calculations include all active bookings and paid cancelled bookings</p>
                     <div class="table-responsive">
                         <table class="table">
                             <thead>
@@ -131,13 +211,25 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for month in monthly_revenue %}
-                                <tr>
-                                    <td>{{ month.month }}</td>
-                                    <td>Rs{{ month.revenue|floatformat:2 }}</td>
-                                    <td>{{ month.booking_count }}</td>
-                                </tr>
-                                {% endfor %}
+                                {% if selected_month %}
+                                    {% for month in monthly_revenue %}
+                                        {% if forloop.counter == selected_month %}
+                                            <tr>
+                                                <td>{{ month.month }}</td>
+                                                <td>Rs{{ month.revenue|floatformat:2 }}</td>
+                                                <td>{{ month.booking_count }}</td>
+                                            </tr>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    {% for month in monthly_revenue %}
+                                        <tr>
+                                            <td>{{ month.month }}</td>
+                                            <td>Rs{{ month.revenue|floatformat:2 }}</td>
+                                            <td>{{ month.booking_count }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                {% endif %}
                             </tbody>
                         </table>
                     </div>
@@ -162,11 +254,12 @@
                             <th>Status</th>
                             <th>Total Price</th>
                             <th>Payment Status</th>
+                            <th>Created By</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for booking in bookings %}
-                        <tr {% if booking.status == 'cancelled' %}class="table-secondary"{% endif %}>
+                        <tr {% if booking.status == 'cancelled' %}{% if booking.payment_status %}class="table-success"{% else %}class="table-secondary"{% endif %}{% endif %}>
                             <td>{{ booking.booking_id }}</td>
                             <td>{{ booking.guest.full_name }}</td>
                             <td>{{ booking.room.number }} ({{ booking.room.room_type.name }})</td>
@@ -179,10 +272,21 @@
                             </td>
                             <td>Rs{{ booking.total_price|floatformat:2 }}</td>
                             <td>
-                                <span class="badge {% if booking.status == 'cancelled' %}bg-danger{% elif booking.payment_status %}bg-success{% else %}bg-warning{% endif %}">
-                                    {% if booking.status == 'cancelled' %}Cancelled - Unpaid{% elif booking.payment_status %}Paid{% else %}Unpaid{% endif %}
+                                <span class="badge {% if booking.status == 'cancelled' %}{% if booking.payment_status %}bg-success{% else %}bg-danger{% endif %}{% elif booking.payment_status %}bg-success{% else %}bg-warning{% endif %}">
+                                    {% if booking.status == 'cancelled' %}
+                                        {% if booking.payment_status %}
+                                            Cancelled - Paid
+                                        {% else %}
+                                            Cancelled - Unpaid
+                                        {% endif %}
+                                    {% elif booking.payment_status %}
+                                        Paid
+                                    {% else %}
+                                        Unpaid
+                                    {% endif %}
                                 </span>
                             </td>
+                            <td>{% if booking.created_by %}{{ booking.created_by.username }} ({% if booking.created_by.profile.role %}{{ booking.created_by.profile.role }}{% elif booking.created_by.is_superuser %}admin{% else %}staff{% endif %}){% else %}N/A{% endif %}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -191,4 +295,26 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const exportFilteredBtn = document.getElementById('export-excel-filtered');
+    const dateStartInput = document.getElementById('date_start');
+    const dateEndInput = document.getElementById('date_end');
+    
+    exportFilteredBtn.addEventListener('click', function() {
+        const dateStart = dateStartInput.value;
+        const dateEnd = dateEndInput.value;
+        
+        if (!dateStart || !dateEnd) {
+            alert('Please select both start and end dates');
+            return;
+        }
+        
+        // Create the export URL with date filters
+        const url = `?export=excel&date_start=${dateStart}&date_end=${dateEnd}`;
+        window.location.href = url;
+    });
+});
+</script>
 {% endblock %} 

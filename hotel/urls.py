@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .payment_status import update_payment_status
 
 urlpatterns = [
     # Authentication URLs
@@ -38,6 +39,7 @@ urlpatterns = [
     path('bookings/<int:pk>/pdf/', views.booking_receipt_pdf, name='booking_receipt_pdf'),
     path('check-availability/', views.check_room_availability, name='check_room_availability'),
     path('booking/<int:pk>/cancel/', views.booking_cancel, name='booking_cancel'),
+    path('booking/<int:pk>/payment-status/', update_payment_status, name='update_payment_status'),
     
     # User Management URLs
     path('users/', views.user_list, name='user_list'),
@@ -55,4 +57,7 @@ urlpatterns = [
     
     # Theme Settings URL
     path('settings/theme/', views.theme_settings, name='theme_settings'),
+    
+    # Hotel Info URL
+    path('settings/hotel-info/', views.hotel_info, name='hotel_info'),
 ] 

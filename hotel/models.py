@@ -186,3 +186,22 @@ class ThemeSettings(models.Model):
 
     def __str__(self):
         return f"Theme Settings for {self.user.username}"
+
+class HotelInfo(models.Model):
+    name = models.CharField(max_length=100, default='Hotel Booking System')
+    address = models.CharField(max_length=255, default='123 Hotel Street, City Name')
+    phone = models.CharField(max_length=20, default='+123 456 7890')
+    email = models.EmailField(default='info@hotelname.com')
+    logo = models.ImageField(upload_to='hotel/', null=True, blank=True)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return self.name
+        
+    @classmethod
+    def get_default(cls):
+        """Get or create default hotel information"""
+        hotel_info, created = cls.objects.get_or_create(id=1)
+        return hotel_info

@@ -44,15 +44,23 @@
                     {{ form.id_type|as_crispy_field }}
                     {{ form.id_number|as_crispy_field }}
                     <div class="mb-3">
-                        <label for="id_id_document" class="form-label">ID Document Image <span id="doc-required" class="text-danger">*</span></label>
+                        <label for="id_id_document" class="form-label">ID Document Image 
+                            {% if not form.instance.pk or not form.instance.id_document %}
+                            <span id="doc-required" class="text-danger">*</span>
+                            {% endif %}
+                        </label>
                         {{ form.id_document }}
                         <div class="invalid-feedback">Please upload a valid ID document image.</div>
+                        {% if form.instance.pk and form.instance.id_document %}
+                        <small id="id-doc-help" class="form-text text-success">You already have an ID document on file. Uploading a new one is optional.</small>
+                        {% else %}
                         <small id="id-doc-help" class="form-text text-muted">Upload a clear image of the ID document</small>
+                        {% endif %}
                         <div id="imagePreviewContainer" class="mt-2" style="display: none;">
                             <img id="imagePreview" src="#" alt="ID Document Preview" class="img-fluid border rounded" style="max-height: 200px;">
                         </div>
                         {% if form.instance.id_document %}
-                        <div class="mt-2">
+                        <div class="mt-2 current-document-preview">
                             <p class="mb-1">Current document:</p>
                             <img src="{{ form.instance.id_document.url }}" alt="Current ID Document" class="img-fluid border rounded" style="max-height: 200px;">
                         </div>
@@ -115,6 +123,14 @@
         const idDocHelp = document.getElementById('id-doc-help');
         const imagePreview = document.getElementById('imagePreview');
         const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        
+        // Check if there's already an ID document (for edit mode)
+        const hasExistingDocument = document.querySelector('.current-document-preview') !== null;
+        
+        // If there's an existing document, remove the required attribute
+        if (hasExistingDocument) {
+            idDocumentInput.removeAttribute('required');
+        }
 
         // Handle image preview
         idDocumentInput.addEventListener('change', function() {
@@ -142,20 +158,26 @@
                 // Keep id_type enabled but show hint
                 idTypeSelect.parentElement.querySelector('.form-text').textContent = 'For Pakistani residents, CNIC is preferred';
                 // Update document requirements
-                idDocHelp.textContent = 'Upload a clear image of CNIC (front and back in single image)';
-                idDocumentInput.setAttribute('required', 'required');
+                if (!hasExistingDocument) {
+                    idDocHelp.textContent = 'Upload a clear image of CNIC (front and back in single image)';
+                    idDocumentInput.setAttribute('required', 'required');
+                }
             } else if (selectedCountry) {
                 // For all other countries
                 idTypeSelect.value = 'passport';
                 idNumberInput.placeholder = 'Enter passport number';
                 idTypeSelect.parentElement.querySelector('.form-text').textContent = 'For international guests, passport is preferred';
                 // Update document requirements
-                idDocHelp.textContent = 'Upload a clear image of passport ID page';
-                idDocumentInput.setAttribute('required', 'required');
+                if (!hasExistingDocument) {
+                    idDocHelp.textContent = 'Upload a clear image of passport ID page';
+                    idDocumentInput.setAttribute('required', 'required');
+                }
             } else {
                 // No country selected
-                idDocumentInput.removeAttribute('required');
-                idDocHelp.textContent = 'Upload a clear image of the ID document';
+                if (!hasExistingDocument) {
+                    idDocumentInput.removeAttribute('required');
+                    idDocHelp.textContent = 'Upload a clear image of the ID document';
+                }
             }
         }
 

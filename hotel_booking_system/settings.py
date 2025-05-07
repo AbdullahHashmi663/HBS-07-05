@@ -66,6 +66,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'hotel.context_processors.theme_settings',
+                'hotel.context_processors.hotel_info',
             ],
         },
     },

@@ -1,3 +1,4 @@
+{% csrf_token %}
 <div class="table-responsive">
     <table class="table table-hover">
         <thead>
@@ -34,11 +35,19 @@
                 </td>
                 <td>
                     {% if booking.status == 'cancelled' %}
-                    <span class="badge bg-danger">Cancelled - Unpaid</span>
+                        {% if booking.payment_status %}
+                        <span class="badge bg-success">Cancelled - Paid</span>
+                        {% else %}
+                        <span class="badge bg-danger">Cancelled - Unpaid</span>
+                        {% endif %}
                     {% elif booking.payment_status %}
                     <span class="badge bg-success">Paid</span>
                     {% else %}
                     <span class="badge bg-warning text-dark">Unpaid</span>
+                    <button type="button" class="btn btn-xs btn-success ms-1 mark-paid-btn" 
+                            data-booking-id="{{ booking.id }}" title="Mark as Paid">
+                        <i class="fas fa-check"></i>
+                    </button>
                     {% endif %}
                 </td>
                 <td>Rs{{ booking.total_price }}</td>

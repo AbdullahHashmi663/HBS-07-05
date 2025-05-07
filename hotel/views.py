@@ -2,16 +2,16 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
-from django.db.models import Q, Avg, Sum
+from django.db.models import Q, Avg, Sum, Count
 from django.db import models
 from django.http import HttpResponse, JsonResponse
 from django.template.loader import get_template
 from django.utils import timezone
 from datetime import datetime, timedelta
-from .models import Room, RoomType, Guest, Booking, UserProfile, ThemeSettings
+from .models import Room, RoomType, Guest, Booking, UserProfile, ThemeSettings, HotelInfo
 from django.contrib.auth.models import User
 from functools import wraps
-from .forms import GuestForm, UserForm, RoomForm, ThemeSettingsForm
+from .forms import GuestForm, UserForm, RoomForm, ThemeSettingsForm, HotelInfoForm
 
 from xhtml2pdf import pisa
 import xlsxwriter
@@ -68,13 +68,17 @@ def dashboard(request):
             Q(status='confirmed') | Q(status='checked_in')
         ).order_by('-created_at')[:5]
     
+    # Get hotel info from database
+    hotel_info = HotelInfo.get_default()
+    
     context = {
         'total_rooms': total_rooms,
         'available_rooms': available_rooms,
         'active_bookings': active_bookings,
         'total_guests': total_guests,
         'recent_bookings': recent_bookings,
-        'user_role': request.user.profile.role if hasattr(request.user, 'profile') else None
+        'user_role': request.user.profile.role if hasattr(request.user, 'profile') else None,
+        'hotel_info': hotel_info
     }
     
     return render(request, 'hotel/dashboard.html', context)
@@ -103,11 +107,11 @@ def room_type_list(request):
     price_range = request.GET.get('price_range')
     if price_range:
         if price_range == 'budget':
-            room_types = room_types.filter(price_per_night__lt=100)
+            room_types = room_types.filter(price_per_night__lte=1000)
         elif price_range == 'standard':
-            room_types = room_types.filter(price_per_night__gte=100, price_per_night__lte=200)
+            room_types = room_types.filter(price_per_night__gt=1000, price_per_night__lt=3000)
         elif price_range == 'luxury':
-            room_types = room_types.filter(price_per_night__gt=200)
+            room_types = room_types.filter(price_per_night__gte=3000)
     
     # Calculate statistics
     avg_price = room_types.aggregate(Avg('price_per_night'))['price_per_night__avg']
@@ -121,7 +125,10 @@ def room_type_list(request):
         'room_types': room_types,
         'avg_price': avg_price,
         'total_capacity': total_capacity,
-        'most_popular': most_popular
+        'most_popular': most_popular,
+        'search_query': search_query,
+        'capacity_filter': capacity_filter,
+        'price_range': price_range
     }
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -412,7 +419,11 @@ def guest_edit(request, pk):
     if request.method == 'POST':
         form = GuestForm(request.POST, request.FILES, instance=guest)
         if form.is_valid():
-            form.save()
+            guest_form = form.save(commit=False)
+            # Keep the existing ID document if no new one is uploaded
+            if not request.FILES.get('id_document') and guest.id_document:
+                guest_form.id_document = guest.id_document
+            guest_form.save()
             messages.success(request, 'Guest updated successfully')
             return redirect('guest_list')
     else:
@@ -616,7 +627,7 @@ def booking_create(request):
                 check_in_date=check_in,
                 check_out_date=check_out,
                 status='confirmed',  # Default to confirmed
-                payment_status=True,  # Set payment status to True for confirmed bookings
+                payment_status=True if request.POST.get('payment_status') == 'on' else False,  # Set payment status based on form input
                 adults=request.POST.get('adults', 1),
                 children=request.POST.get('children', 0),
                 total_price=total_price,
@@ -727,9 +738,14 @@ def booking_cancel(request, pk):
     
     if request.method == 'POST':
         try:
-            # Update booking status to cancelled and set payment_status to False
+            # Update booking status to cancelled
             booking.status = 'cancelled'
-            booking.payment_status = False  # Set payment status to unpaid when cancelled
+            
+            # Only set payment_status to False if it was unpaid to begin with
+            # For paid bookings, we keep payment_status=True so they're counted in revenue
+            if not booking.payment_status:
+                booking.payment_status = False
+                
             booking.save()
             
             # Check if room has any other active bookings
@@ -1077,10 +1093,10 @@ def occupancy_report(request):
     
     # Loop through all bookings and count occupied rooms for each date
     for current_date in (start_date + timedelta(days=n) for n in range(date_range)):
-        # Find bookings active on this date
+        # Find bookings active on this date (including check-out day)
         day_occupied_count = bookings.filter(
             check_in_date__lte=current_date,
-            check_out_date__gt=current_date
+            check_out_date__gte=current_date
         ).count()
         
         # Calculate occupancy rate for this day
@@ -1119,13 +1135,27 @@ def revenue_report(request):
     
     # Filter by year if provided
     selected_year = request.GET.get('year', str(current_year))
+    selected_month = None
     try:
         selected_year = int(selected_year)
         start_date = timezone.datetime(selected_year, 1, 1).date()
         end_date = timezone.datetime(selected_year, 12, 31).date()
+        
+        # Month filter
+        month = request.GET.get('month')
+        if month:
+            selected_month = int(month)
+            # Set the date range to the selected month
+            start_date = timezone.datetime(selected_year, selected_month, 1).date()
+            
+            # Calculate the last day of the month
+            if selected_month == 12:
+                end_date = timezone.datetime(selected_year, 12, 31).date()
+            else:
+                end_date = timezone.datetime(selected_year, selected_month + 1, 1).date() - timedelta(days=1)
     except (ValueError, TypeError):
         selected_year = current_year
-        messages.error(request, 'Invalid year provided. Using current year instead.')
+        messages.error(request, 'Invalid year or month provided. Using current year instead.')
     
     # Get all bookings for display
     all_bookings = Booking.objects.filter(
@@ -1133,18 +1163,25 @@ def revenue_report(request):
         created_at__date__lte=end_date
     )
     
-    # Get valid bookings for revenue calculations (excluding cancelled)
-    valid_bookings = all_bookings.exclude(status='cancelled')
+    # Get revenue-generating bookings:
+    # 1. Active bookings (not cancelled)
+    # 2. Cancelled bookings that were paid
+    revenue_bookings = Booking.objects.filter(
+        created_at__date__gte=start_date,
+        created_at__date__lte=end_date
+    ).filter(
+        Q(~Q(status='cancelled')) | Q(status='cancelled', payment_status=True)
+    )
     
-    # Calculate total revenue from valid bookings only
-    total_revenue = valid_bookings.aggregate(total=Sum('total_price'))['total'] or 0
+    # Calculate total revenue from revenue-generating bookings
+    total_revenue = revenue_bookings.aggregate(total=Sum('total_price'))['total'] or 0
     
-    # Calculate revenue by room type (excluding cancelled bookings)
+    # Calculate revenue by room type (including cancelled but paid bookings)
     revenue_by_room_type = {}
     revenue_percentages = {}
     
     for room_type in RoomType.objects.all():
-        rt_bookings = valid_bookings.filter(room__room_type=room_type)
+        rt_bookings = revenue_bookings.filter(room__room_type=room_type)
         revenue = rt_bookings.aggregate(total=Sum('total_price'))['total'] or 0
         if revenue > 0:  # Only include room types with revenue
             revenue_by_room_type[room_type.name] = revenue
@@ -1154,10 +1191,10 @@ def revenue_report(request):
     days_in_period = (end_date - start_date).days + 1
     avg_daily_revenue = total_revenue / days_in_period if days_in_period > 0 else 0
     
-    # Calculate monthly revenue (excluding cancelled bookings)
+    # Calculate monthly revenue (including cancelled but paid bookings)
     monthly_revenue = []
     for month in range(1, 13):
-        month_bookings = valid_bookings.filter(created_at__month=month)
+        month_bookings = revenue_bookings.filter(created_at__month=month)
         revenue = month_bookings.aggregate(total=Sum('total_price'))['total'] or 0
         booking_count = month_bookings.count()
         month_name = timezone.datetime(2000, month, 1).strftime('%B')
@@ -1172,9 +1209,11 @@ def revenue_report(request):
     available_years = Booking.objects.dates('created_at', 'year')
     years = [date.year for date in available_years]
     
-    # Calculate statistics for valid bookings
-    valid_booking_count = valid_bookings.count()
-    cancelled_booking_count = all_bookings.filter(status='cancelled').count()
+    # Calculate statistics
+    active_booking_count = all_bookings.exclude(status='cancelled').count()
+    cancelled_paid_count = all_bookings.filter(status='cancelled', payment_status=True).count()
+    cancelled_unpaid_count = all_bookings.filter(status='cancelled', payment_status=False).count()
+    total_revenue_bookings = revenue_bookings.count()
     
     # Handle export requests
     export_format = request.GET.get('export')
@@ -1190,9 +1229,12 @@ def revenue_report(request):
         'revenue_percentages': revenue_percentages,
         'monthly_revenue': monthly_revenue,
         'selected_year': selected_year,
+        'selected_month': selected_month,
         'available_years': years,
-        'valid_booking_count': valid_booking_count,
-        'cancelled_booking_count': cancelled_booking_count,
+        'active_booking_count': active_booking_count,
+        'cancelled_paid_count': cancelled_paid_count,
+        'cancelled_unpaid_count': cancelled_unpaid_count,
+        'total_revenue_bookings': total_revenue_bookings,
         'total_booking_count': all_bookings.count(),
         'start_date': start_date,
         'end_date': end_date,
@@ -1204,6 +1246,14 @@ def revenue_report(request):
     return render(request, 'hotel/revenue_report.html', context)
 
 def generate_revenue_pdf(request, bookings, start_date, end_date, total_revenue, revenue_by_room_type, monthly_revenue):
+    # Get stats for cancelled bookings
+    cancelled_paid_count = bookings.filter(status='cancelled', payment_status=True).count()
+    cancelled_unpaid_count = bookings.filter(status='cancelled', payment_status=False).count()
+    revenue_bookings_count = bookings.filter(
+        Q(~Q(status='cancelled')) | Q(status='cancelled', payment_status=True)
+    ).count()
+    active_bookings_count = bookings.exclude(status='cancelled').count()
+    
     template_path = 'hotel/revenue_report_pdf.html'
     context = {
         'bookings': bookings,
@@ -1211,7 +1261,12 @@ def generate_revenue_pdf(request, bookings, start_date, end_date, total_revenue,
         'end_date': end_date,
         'total_revenue': total_revenue,
         'revenue_by_room_type': revenue_by_room_type,
-        'monthly_revenue': monthly_revenue
+        'monthly_revenue': monthly_revenue,
+        'cancelled_paid_count': cancelled_paid_count,
+        'cancelled_unpaid_count': cancelled_unpaid_count,
+        'revenue_bookings_count': revenue_bookings_count,
+        'total_bookings': bookings.count(),
+        'active_bookings_count': active_bookings_count
     }
     
     response = HttpResponse(content_type='application/pdf')
@@ -1226,49 +1281,129 @@ def generate_revenue_pdf(request, bookings, start_date, end_date, total_revenue,
     return response
 
 def generate_revenue_excel(request, bookings, start_date, end_date, total_revenue, revenue_by_room_type, monthly_revenue):
+    # Filter bookings by date range if provided in URL params
+    date_range_start = request.GET.get('date_start')
+    date_range_end = request.GET.get('date_end')
+    
+    if date_range_start and date_range_end:
+        try:
+            filter_start = datetime.strptime(date_range_start, '%Y-%m-%d').date()
+            filter_end = datetime.strptime(date_range_end, '%Y-%m-%d').date()
+            
+            # Filter bookings that have any overlap with the specified date range
+            bookings = bookings.filter(
+                Q(check_in_date__lte=filter_end) & Q(check_out_date__gte=filter_start)
+            )
+            
+            # Update start_date and end_date for the filename
+            start_date = filter_start
+            end_date = filter_end
+        except ValueError:
+            # Invalid date format, ignore the filter
+            pass
+    
+    # Get stats for cancelled bookings
+    cancelled_paid_count = bookings.filter(status='cancelled', payment_status=True).count()
+    cancelled_unpaid_count = bookings.filter(status='cancelled', payment_status=False).count()
+    revenue_bookings_count = bookings.filter(
+        Q(~Q(status='cancelled')) | Q(status='cancelled', payment_status=True)
+    ).count()
+    active_booking_count = bookings.exclude(status='cancelled').count()
+    
     output = BytesIO()
     workbook = xlsxwriter.Workbook(output)
-    worksheet = workbook.add_worksheet("Revenue Report")
+    worksheet = workbook.add_worksheet("Bookings")
     
-    # Add headers
-    headers = ['Booking ID', 'Guest', 'Room', 'Check In', 'Check Out', 'Status', 'Total Price', 'Payment Status']
-    for col_num, header in enumerate(headers):
-        worksheet.write(0, col_num, header)
+    # Define formats
+    header_format = workbook.add_format({'bold': True, 'bg_color': '#3498db', 'color': 'white', 'border': 1})
+    cell_format = workbook.add_format({'border': 1})
+    money_format = workbook.add_format({'num_format': 'Rs#,##0.00', 'border': 1})
+    date_format = workbook.add_format({'num_format': 'yyyy-mm-dd', 'border': 1})
+    paid_format = workbook.add_format({'bg_color': '#d4edda', 'border': 1})
+    unpaid_format = workbook.add_format({'bg_color': '#f8d7da', 'border': 1})
+    cancelled_paid_format = workbook.add_format({'bg_color': '#c3e6cb', 'border': 1})
+    cancelled_unpaid_format = workbook.add_format({'bg_color': '#f5c6cb', 'border': 1})
+    
+    # Add title with date range
+    row = 0
+    worksheet.write(row, 0, f"Bookings Report: {start_date} to {end_date}", workbook.add_format({'bold': True, 'font_size': 12}))
+    row += 2
+    
+    # Add booking details header
+    worksheet.write(row, 0, "Booking ID", header_format)
+    worksheet.write(row, 1, "Guest", header_format)
+    worksheet.write(row, 2, "Room", header_format)
+    worksheet.write(row, 3, "Check In", header_format)
+    worksheet.write(row, 4, "Check Out", header_format)
+    worksheet.write(row, 5, "Status", header_format)
+    worksheet.write(row, 6, "Total Price", header_format)
+    worksheet.write(row, 7, "Payment Status", header_format)
+    worksheet.write(row, 8, "Created By", header_format)
     
     # Write booking data
-    for row_num, booking in enumerate(bookings, 1):
-        worksheet.write(row_num, 0, str(booking.pk))
-        worksheet.write(row_num, 1, booking.guest.full_name)
-        worksheet.write(row_num, 2, f"{booking.room.number} ({booking.room.room_type.name})")
-        worksheet.write(row_num, 3, booking.check_in_date.strftime('%Y-%m-%d'))
-        worksheet.write(row_num, 4, booking.check_out_date.strftime('%Y-%m-%d'))
-        worksheet.write(row_num, 5, booking.get_status_display())
-        worksheet.write(row_num, 6, float(booking.total_price))
+    for booking in bookings:
+        row += 1
+        
+        # Determine row format based on booking status and payment status
+        row_format = cell_format
+        if booking.status == 'cancelled':
+            if booking.payment_status:
+                row_format = cancelled_paid_format
+            else:
+                row_format = cancelled_unpaid_format
+        elif booking.payment_status:
+            row_format = paid_format
+        else:
+            row_format = unpaid_format
+            
+        worksheet.write(row, 0, str(booking.pk), row_format)
+        worksheet.write(row, 1, booking.guest.full_name, row_format)
+        worksheet.write(row, 2, f"{booking.room.number} ({booking.room.room_type.name})", row_format)
+        
+        try:
+            check_in_date = booking.check_in_date.strftime('%Y-%m-%d')
+            check_out_date = booking.check_out_date.strftime('%Y-%m-%d')
+            worksheet.write(row, 3, booking.check_in_date, date_format)
+            worksheet.write(row, 4, booking.check_out_date, date_format)
+        except AttributeError:
+            check_in_date = "N/A"
+            check_out_date = "N/A"
+            worksheet.write(row, 3, check_in_date, row_format)
+            worksheet.write(row, 4, check_out_date, row_format)
+            
+        worksheet.write(row, 5, booking.get_status_display(), row_format)
+        worksheet.write(row, 6, float(booking.total_price), money_format)
+        
         # Handle payment status correctly
         if booking.status == 'cancelled':
-            payment_status = 'Cancelled - Unpaid'
+            if booking.payment_status:
+                payment_status = 'Cancelled - Paid'
+            else:
+                payment_status = 'Cancelled - Unpaid'
         else:
             payment_status = 'Paid' if booking.payment_status else 'Unpaid'
-        worksheet.write(row_num, 7, payment_status)
+            
+        worksheet.write(row, 7, payment_status, row_format)
+        
+        # Add Created By info
+        if hasattr(booking, 'created_by') and booking.created_by:
+            role = getattr(booking.created_by.profile, 'role', 'admin' if booking.created_by.is_superuser else 'staff')
+            created_by = f"{booking.created_by.username} ({role})"
+        else:
+            created_by = 'N/A'
+        worksheet.write(row, 8, created_by, row_format)
     
-    # Add summary worksheet
-    summary_sheet = workbook.add_worksheet("Summary")
-    summary_sheet.write(0, 0, "Revenue Summary")
-    summary_sheet.write(1, 0, "Total Revenue")
-    summary_sheet.write(1, 1, float(total_revenue))
+    # Add legend at the bottom
+    legend_row = row + 3
+    worksheet.write(legend_row, 0, "Color Legend:", workbook.add_format({'bold': True}))
+    worksheet.write(legend_row + 1, 0, "Active, Paid", paid_format)
+    worksheet.write(legend_row + 2, 0, "Active, Unpaid", unpaid_format)
+    worksheet.write(legend_row + 3, 0, "Cancelled, Paid", cancelled_paid_format)
+    worksheet.write(legend_row + 4, 0, "Cancelled, Unpaid", cancelled_unpaid_format)
     
-    # Add room type revenue
-    summary_sheet.write(3, 0, "Revenue by Room Type")
-    for row_num, (room_type, revenue) in enumerate(revenue_by_room_type.items(), 4):
-        summary_sheet.write(row_num, 0, room_type)
-        summary_sheet.write(row_num, 1, float(revenue))
-    
-    # Add monthly revenue
-    summary_sheet.write(row_num + 2, 0, "Monthly Revenue")
-    for row_num, month_data in enumerate(monthly_revenue, row_num + 3):
-        summary_sheet.write(row_num, 0, month_data['month'])
-        summary_sheet.write(row_num, 1, float(month_data['revenue']))
-        summary_sheet.write(row_num, 2, month_data['booking_count'])
+    # Auto-adjust column widths
+    for col_num in range(9):
+        worksheet.set_column(col_num, col_num, 15)
     
     workbook.close()
     output.seek(0)
@@ -1277,7 +1412,7 @@ def generate_revenue_excel(request, bookings, start_date, end_date, total_revenu
         output.getvalue(),
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = f'attachment; filename="revenue_report_{start_date}_{end_date}.xlsx"'
+    response['Content-Disposition'] = f'attachment; filename="bookings_{start_date}_{end_date}.xlsx"'
     return response
 
 @login_required
@@ -1379,8 +1514,12 @@ def theme_settings(request):
 @login_required
 def booking_receipt_pdf(request, pk):
     booking = get_object_or_404(Booking, pk=pk)
+    hotel_info = HotelInfo.get_default()
     template_path = 'hotel/booking_receipt_pdf.html'
-    context = {'booking': booking}
+    context = {
+        'booking': booking,
+        'hotel_info': hotel_info
+    }
     
     # Create a Django response object, and specify content_type as pdf
     response = HttpResponse(content_type='application/pdf')
@@ -1398,3 +1537,63 @@ def booking_receipt_pdf(request, pk):
     if pisa_status.err:
         return HttpResponse('We had some errors <pre>' + html + '</pre>')
     return response
+
+@login_required
+@admin_required
+def hotel_info(request):
+    """View for updating hotel information"""
+    # Get or create hotel info record
+    hotel_info = HotelInfo.get_default()
+    
+    if request.method == 'POST':
+        form = HotelInfoForm(request.POST, instance=hotel_info)
+        if form.is_valid():
+            form.save()
+        messages.success(request, 'Hotel information updated successfully!')
+        return redirect('dashboard')
+    else:
+        form = HotelInfoForm(instance=hotel_info)
+    
+    return render(request, 'hotel/hotel_info_form.html', {'form': form})
+
+@login_required
+@admin_required
+def update_payment_status(request, pk):
+    """Update the payment status of a booking via AJAX"""
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        try:
+            booking = get_object_or_404(Booking, pk=pk)
+            
+            # Get the current and new payment status
+            current_status = booking.payment_status
+            new_status = request.POST.get('payment_status') == 'true'
+            
+            # Only allow changes from unpaid to paid, not from paid to unpaid
+            if current_status is False or new_status is True:
+                booking.payment_status = new_status
+                booking.save(update_fields=['payment_status'])
+                
+                # Return appropriate status based on the booking status
+                status_html = ''
+                if booking.status == 'cancelled':
+                    status_html = '<span class="badge bg-danger">Cancelled - Unpaid</span>'
+                elif booking.payment_status:
+                    status_html = '<span class="badge bg-success">Paid</span>'
+                else:
+                    status_html = '<span class="badge bg-warning text-dark">Unpaid</span>'
+                
+                return JsonResponse({
+                    'success': True, 
+                    'payment_status': booking.payment_status,
+                    'status_html': status_html
+                })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Cannot change payment status from paid to unpaid'
+                }, status=400)
+                
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)

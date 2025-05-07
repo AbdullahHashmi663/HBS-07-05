@@ -30,18 +30,18 @@
             <div class="col-md-4">
                 <select id="capacityFilter" class="form-select">
                     <option value="">All Capacities</option>
-                    <option value="1">Single (1)</option>
-                    <option value="2">Double (2)</option>
-                    <option value="3">Triple (3)</option>
-                    <option value="4">Family (4+)</option>
+                    <option value="1" {% if capacity_filter == '1' %}selected{% endif %}>Single (1)</option>
+                    <option value="2" {% if capacity_filter == '2' %}selected{% endif %}>Double (2)</option>
+                    <option value="3" {% if capacity_filter == '3' %}selected{% endif %}>Triple (3)</option>
+                    <option value="4" {% if capacity_filter == '4' %}selected{% endif %}>Family (4+)</option>
                 </select>
             </div>
             <div class="col-md-4">
                 <select id="priceFilter" class="form-select">
                     <option value="">All Price Ranges</option>
-                    <option value="budget">Budget (< Rs100)</option>
-                    <option value="standard">Standard (Rs100 - Rs200)</option>
-                    <option value="luxury">Luxury (> Rs200)</option>
+                    <option value="budget" {% if price_range == 'budget' %}selected{% endif %}>Budget (≤ Rs1000)</option>
+                    <option value="standard" {% if price_range == 'standard' %}selected{% endif %}>Standard (Rs1000 - Rs3000)</option>
+                    <option value="luxury" {% if price_range == 'luxury' %}selected{% endif %}>Luxury (≥ Rs3000)</option>
                 </select>
             </div>
         </div>
@@ -148,9 +148,9 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Set initial values from URL params
         const urlParams = new URLSearchParams(window.location.search);
-        document.getElementById('searchInput').value = urlParams.get('search') || '';
-        document.getElementById('capacityFilter').value = urlParams.get('capacity') || '';
-        document.getElementById('priceFilter').value = urlParams.get('price_range') || '';
+        document.getElementById('searchInput').value = urlParams.get('search') || '{{ search_query|default:"" }}';
+        document.getElementById('capacityFilter').value = urlParams.get('capacity') || '{{ capacity_filter|default:"" }}';
+        document.getElementById('priceFilter').value = urlParams.get('price_range') || '{{ price_range|default:"" }}';
         
         // Search input
         document.getElementById('searchInput').addEventListener('input', debouncedSearch);

@@ -36,7 +36,7 @@
         }
         .receipt-title {
             float: right;
-            text-align: right;
+            text-align: center;
             width: 50%;
             color: #999;
             font-size: 22pt;
@@ -228,11 +228,11 @@
     <div class="container">
         <div class="header clearfix">
             <div class="hotel-info">
-                <h1 class="hotel-name">Hotel Booking System</h1>
-                <p class="hotel-slogan">Your home away from home</p>
-                <p class="hotel-address">123 Hotel Street, City Name, Country 12345</p>
-                <p class="hotel-contact">Tel: +123 456 7890</p>
-                <p class="hotel-website">www.hotelbookingsystem.com</p>
+                <h1 class="hotel-name">{{ hotel_info.name }}</h1>
+                <p class="hotel-slogan">{% if hotel_info.description %}{{ hotel_info.description }}{% else %}Your home away from home{% endif %}</p>
+                <p class="hotel-address">{{ hotel_info.address }}</p>
+                <p class="hotel-contact">Tel: {{ hotel_info.phone }}</p>
+                <p class="hotel-website">{{ hotel_info.email }}</p>
             </div>
             <h1 class="receipt-title">Hotel Receipt</h1>
         </div>
@@ -327,7 +327,7 @@
         </div>
         
         <div class="footer">
-            <p>Thank you for choosing Hotel Booking System. We look forward to your stay!</p>
+            <p>Thank you for choosing {{ hotel_info.name }}. We look forward to your stay!</p>
             <p>This is a computer-generated receipt and does not require a signature.</p>
         </div>
     </div>

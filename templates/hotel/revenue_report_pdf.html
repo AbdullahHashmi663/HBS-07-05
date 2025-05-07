@@ -102,8 +102,13 @@
         <h3 class="section-title">Revenue Summary</h3>
         <div class="summary">
             <p><strong>Total Revenue:</strong> Rs{{ total_revenue|floatformat:2 }}</p>
-            <p><strong>Total Bookings:</strong> {{ bookings.count }}</p>
+            <p><strong>Total Bookings:</strong> {{ total_bookings }}</p>
+            <p><strong>Revenue Generating Bookings:</strong> {{ revenue_bookings_count }}</p>
+            <p><strong>Active Bookings:</strong> {{ active_bookings_count }}</p>
+            <p><strong>Paid Cancelled Bookings:</strong> {{ cancelled_paid_count }}</p>
+            <p><strong>Unpaid Cancelled Bookings:</strong> {{ cancelled_unpaid_count }}</p>
             <p><strong>Report Period:</strong> {{ start_date|date:"F d, Y" }} - {{ end_date|date:"F d, Y" }}</p>
+            <p style="color: #666; font-style: italic; font-size: 8pt;">Note: Revenue calculations include all active bookings and paid cancelled bookings</p>
         </div>
     </div>
 
@@ -171,6 +176,7 @@
                     <th>Status</th>
                     <th>Total Price</th>
                     <th>Payment Status</th>
+                    <th>Created By</th>
                 </tr>
             </thead>
             <tbody>
@@ -183,7 +189,20 @@
                     <td>{{ booking.check_out_date|date:"M d, Y" }}</td>
                     <td>{{ booking.get_status_display }}</td>
                     <td>Rs{{ booking.total_price|floatformat:2 }}</td>
-                    <td>{% if booking.status == 'cancelled' %}Cancelled - Unpaid{% elif booking.payment_status %}Paid{% else %}Unpaid{% endif %}</td>
+                    <td>
+                        {% if booking.status == 'cancelled' %}
+                            {% if booking.payment_status %}
+                                Cancelled - Paid
+                            {% else %}
+                                Cancelled - Unpaid
+                            {% endif %}
+                        {% elif booking.payment_status %}
+                            Paid
+                        {% else %}
+                            Unpaid
+                        {% endif %}
+                    </td>
+                    <td>{% if booking.created_by %}{{ booking.created_by.username }} ({% if booking.created_by.profile.role %}{{ booking.created_by.profile.role }}{% elif booking.created_by.is_superuser %}admin{% else %}staff{% endif %}){% else %}N/A{% endif %}</td>
                 </tr>
                 {% endfor %}
             </tbody>

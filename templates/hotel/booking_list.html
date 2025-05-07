@@ -1,90 +1,107 @@
 {% extends "hotel/base.html" %}
+{% load static %}
 
 {% block title %}Bookings - Hotel Booking System{% endblock %}
 
 {% block page_title %}Booking Management{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-header">
-        <div class="d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Bookings</h5>
-            {% if user.is_superuser %}
-            <a href="{% url 'booking_create' %}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>Add New Booking
-            </a>
-            {% endif %}
-        </div>
-    </div>
-    <div class="card-body">
-        <!-- Search and Filter Section -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="input-group">
-                    <span class="input-group-text">
-                        <i class="fas fa-search"></i>
-                    </span>
-                    <input type="text" id="searchInput" class="form-control" placeholder="Search bookings...">
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Bookings</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item active">Bookings</li>
+    </ol>
+    
+    <!-- Alerts container -->
+    <div id="alerts-container"></div>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-table me-1"></i>
+                    Booking Management
+                </div>
+                <div class="d-flex">
+                    {% if user.is_superuser %}
+                    <a href="{% url 'booking_create' %}" class="btn btn-primary btn-sm me-2">
+                        <i class="fas fa-plus me-1"></i> New Booking
+                    </a>
+                    {% endif %}
                 </div>
             </div>
-            <div class="col-md-3">
-                <select id="statusFilter" class="form-select">
-                    <option value="">All Statuses</option>
-                    <option value="confirmed">Confirmed</option>
-                    <option value="checked_in">Checked In</option>
-                    <option value="checked_out">Checked Out</option>
-                    <option value="cancelled">Cancelled</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <input type="date" id="dateFilter" class="form-control" placeholder="Filter by date">
-            </div>
-            <div class="col-md-3">
-                <select id="roomTypeFilter" class="form-select">
-                    <option value="">All Room Types</option>
-                    {% for type in room_types %}
-                    <option value="{{ type.id }}">{{ type.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
         </div>
+        <div class="card-body">
+            <!-- Search and Filter Section -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" id="searchInput" class="form-control" placeholder="Search bookings...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select id="statusFilter" class="form-select">
+                        <option value="">All Statuses</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="checked_in">Checked In</option>
+                        <option value="checked_out">Checked Out</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <input type="date" id="dateFilter" class="form-control" placeholder="Filter by date">
+                </div>
+                <div class="col-md-3">
+                    <select id="roomTypeFilter" class="form-select">
+                        <option value="">All Room Types</option>
+                        {% for type in room_types %}
+                        <option value="{{ type.id }}">{{ type.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
 
-        <!-- Dynamic Content Container -->
-        <div id="bookingTableContainer">
-            {% include "hotel/includes/booking_table.html" %}
-        </div>
+            <!-- Dynamic Content Container -->
+            <div id="bookingTableContainer">
+                {% include "hotel/includes/booking_table.html" %}
+            </div>
 
-        <!-- Booking Statistics -->
-        <div class="row mt-4">
-            <div class="col-md-3">
-                <div class="card bg-primary text-white">
-                    <div class="card-body">
-                        <h6 class="card-title">Total Bookings</h6>
-                        <h2 class="mb-0">{{ total_bookings }}</h2>
+            <!-- Booking Statistics -->
+            <div class="row mt-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <h6 class="card-title">Total Bookings</h6>
+                            <h2 class="mb-0">{{ total_bookings }}</h2>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-success text-white">
-                    <div class="card-body">
-                        <h6 class="card-title">Active Bookings</h6>
-                        <h2 class="mb-0">{{ active_bookings }}</h2>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <h6 class="card-title">Active Bookings</h6>
+                            <h2 class="mb-0">{{ active_bookings }}</h2>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-info text-white">
-                    <div class="card-body">
-                        <h6 class="card-title">Today's Check-ins</h6>
-                        <h2 class="mb-0">{{ todays_checkins }}</h2>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <h6 class="card-title">Today's Check-ins</h6>
+                            <h2 class="mb-0">{{ todays_checkins }}</h2>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-warning text-white">
-                    <div class="card-body">
-                        <h6 class="card-title">Today's Check-outs</h6>
-                        <h2 class="mb-0">{{ todays_checkouts }}</h2>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <h6 class="card-title">Today's Check-outs</h6>
+                            <h2 class="mb-0">{{ todays_checkouts }}</h2>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -165,6 +182,54 @@
         document.getElementById('statusFilter').addEventListener('change', updateBookingList);
         document.getElementById('dateFilter').addEventListener('change', updateBookingList);
         document.getElementById('roomTypeFilter').addEventListener('change', updateBookingList);
+    });
+
+    $(document).ready(function() {
+        // Handle payment status button clicks
+        $(document).on('click', '.mark-paid-btn', function() {
+            const bookingId = $(this).data('booking-id');
+            const $button = $(this);
+            const $statusBadge = $button.prev('.badge');
+            
+            // Send AJAX request to update payment status
+            $.ajax({
+                url: `/hotel/booking/${bookingId}/payment-status/`,
+                type: 'POST',
+                data: {
+                    'payment_status': true,
+                    'csrfmiddlewaretoken': $('input[name=csrfmiddlewaretoken]').val()
+                },
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function(data) {
+                    // Update the status badge and remove the button
+                    $statusBadge.replaceWith(data.status_html);
+                    $button.remove();
+                    
+                    // Show success message
+                    showAlert('Payment status updated successfully', 'success');
+                },
+                error: function(xhr) {
+                    let errorMsg = 'Failed to update payment status';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMsg = xhr.responseJSON.error;
+                    }
+                    showAlert(errorMsg, 'danger');
+                }
+            });
+        });
+        
+        // Helper function to show alerts
+        function showAlert(message, type) {
+            const alertHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            $('#alerts-container').html(alertHtml);
+        }
     });
 </script>
 {% endblock %} 

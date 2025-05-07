@@ -102,6 +102,7 @@
                                                 <option value="no_show" {% if booking.status == 'no_show' %}selected{% endif %}>No Show</option>
                                             </select>
                                         </div>
+                                        {% endif %}
                                         
                                         <div class="col-md-6 mb-3">
                                             <label for="payment_status" class="form-label">Payment Status</label>
@@ -113,7 +114,6 @@
                                                 </label>
                                             </div>
                                         </div>
-                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
